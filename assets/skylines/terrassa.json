@@ -1,0 +1,29 @@
+{
+ "id": "terrassa",
+ "name": "Terrassa",
+ "country": "ES",
+ "lat": 41.5633,
+ "lon": 2.0089,
+ "radius_km": 8,
+ "label": "Terrassa",
+ "view": "Postcard composite looking north over Terrassa. Hero: the Masia Freixa (Muncunill, Parc de Sant Jordi) in its classic three-quarter view, 1 m = 3.3 dp: belvedere tower ~25 m, wave-edged catalan-vault domes, parabolic arcade. Behind it, smaller and further back: the xemeneies of Vapor Aymerich (mNACTEC), Saphil and the Almirall brickworks, the Torre del Palau and the Seu d'Egara (near town 1 m = 0.6 dp, far town 0.42 dp). Horizon: real terrain profiles ray-cast from SRTM data, as seen from the rooftops south of the old centre (41.553 N 2.006 E), 1 deg = 5 dp: La Mola with the Sant Llorenc del Munt monastery (bearing 6 deg, 9.6 km) and Montserrat's crown (bearing 286 deg, 17 km). Montserrat is drawn in from ~80 deg further west by squeezing the Obac foothills between them. Both keep their true shapes and relative size. Montcau is not drawn because it is hidden behind the La Mola ridge from the town. Night: Masia floodlit cool white, Torre del Palau warm.",
+ "landmarks": [
+  "Masia Freixa (tower ~25 m)",
+  "Torre del Palau (26.7 m)",
+  "Vapor Aymerich, Amat i Jover chimney / mNACTEC (42 m)",
+  "Saphil chimney (36 m)",
+  "Bòbila Almirall chimney (63 m)",
+  "Seu d'Ègara (Sant Pere, Sant Miquel, Santa Maria)",
+  "La Mola with the monastery of Sant Llorenç del Munt (1,104 m)",
+  "Montserrat, Sant Jeroni (1,236 m)"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   168,
+   268
+  ],
+  "heroColor": "#e4dccb",
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

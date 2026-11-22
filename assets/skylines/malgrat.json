@@ -1,0 +1,59 @@
+{
+ "id": "malgrat",
+ "name": "Malgrat de Mar",
+ "country": "ES",
+ "lat": 41.646,
+ "lon": 2.742,
+ "radius_km": 2.5,
+ "label": "Malgrat de Mar",
+ "view": "From the sea about 1.4 km off the Platja del Centre (41.6344 N, 2.7674 E), looking west-north-west (bearing 303°) at the old town with a long lens. Sant Nicolau de Bari, 'la Catedral de la Costa', rises above the old-town roofs, seen side-on from the south-east: the nave roofs, the octagonal crossing cimbori with its low dome, and the facade crown with its pinnacles at the west end. Its 34.8 m bell tower stands at the north-west corner: two octagonal stages and a belfry with pointed arches, alternately open and blind, under a very low dome. Just to the right, about 250 m further inland, the pine-covered Parc del Castell hill rises behind the church. On its summit stands the Torre del Castell ('la Torreta'), a squat round tower about 5.8 m wide with brick merlons and the mirador railing, its foot among the pines. Around them are the old-town houses climbing the hill's foot, the seafront with its palms, the Montnegre ridge and the Turó de Montagut hills behind, and the sea glint in front. The town-landmark tier is used: the bell tower is about 48 dp to its dome (51 dp with the cross) at HERO_SCALE=1. One pinhole camera is used for the church, the castle and the hill: 1 m = 1.38 dp at the church and 1.26 dp at the castle, with positions from OpenStreetMap footprints. Hill heights come from SRTM 30 m. The ridges are ray-cast from the EU-DEM 25 m model and drawn at 0.11 of their angular height so they stay under the clock text. The church and the Torreta are floodlit at night.",
+ "landmarks": [
+  "Església de Sant Nicolau de Bari, 'la Catedral de la Costa': bell tower (34.8 m; two octagonal stages, belfry with pointed arches, very low dome)",
+  "Sant Nicolau: nave (45.75 x 10.5 m, 16.25 m high inside), side chapels, transept and octagonal crossing cimbori (dome 21.5 m)",
+  "Sant Nicolau: neoclassical facade crown with pinnacles",
+  "Torre del Castell, 'la Torreta' (round, about 5.8 m wide and 7 m high, brick merlons, mirador railing)",
+  "Parc del Castell hill (about 31 m above sea level, pine woods)",
+  "Old-town roofs, the seafront and its palms",
+  "Montnegre ridge and the Turó de Montagut hills (218 m)",
+  "Mediterranean (Platja del Centre)"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   154,
+   234
+  ],
+  "heroColor": "#d3b78e",
+  "water": [
+   -5,
+   139,
+   385,
+   150
+  ],
+  "accents": [
+   {
+    "box": [
+     234,
+     84,
+     385,
+     124
+    ],
+    "color": "#5f7a4e",
+    "k": 0.85,
+    "l": -0.02
+   },
+   {
+    "box": [
+     -5,
+     112,
+     154,
+     126
+    ],
+    "color": "#6d8455",
+    "k": 0.35,
+    "l": 0
+   }
+  ],
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

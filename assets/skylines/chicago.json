@@ -1,0 +1,92 @@
+{
+ "id": "chicago",
+ "name": "Chicago",
+ "country": "US",
+ "lat": 41.8781,
+ "lon": -87.6298,
+ "radius_km": 40,
+ "label": "Chicago",
+ "view": "From the Museum Campus lakefront by the Shedd Aquarium, looking north-north-west across Monroe Harbor (Lake Michigan, with a glint) at the Loop, Lakeshore East and Streeterville; Grant Park trees along the shore and South Loop towers on the left. The signature towers are pushed together into the hero zone in their real left-to-right order, each drawn at one scale (0.18 dp per metre) from its real bearing, so heights and plan widths are true.",
+ "landmarks": [
+  "Willis Tower (442 m roof, west antenna 527 m; nine bundled tubes stepping back at floors 50, 66 and 90)",
+  "875 North Michigan / John Hancock Center (344 m roof, antennas 457 m and 431 m; tapering, X-braced)",
+  "Trump International Hotel & Tower (357 m roof, spire 423 m; setbacks at floors 16, 29 and 51)",
+  "St. Regis Chicago / Vista Tower (363 m; three masses of stacked frustums, 101/71/47 storeys)",
+  "Aon Center (346 m; white granite, vertical ribs)",
+  "Two Prudential Plaza (303 m; chevron setbacks, pyramid and spire)",
+  "311 South Wacker (293 m; lit crown cylinder)",
+  "Lake Michigan / Monroe Harbor glint"
+ ],
+ "daylight": {
+  "palette": "steel",
+  "hero": [
+   166,
+   268
+  ],
+  "heroColor": "#7e95b4",
+  "water": [
+   110,
+   138.5,
+   385,
+   150
+  ],
+  "accents": [
+   {
+    "box": [
+     166,
+     38,
+     195,
+     139
+    ],
+    "color": "#4a4038",
+    "k": 0.8,
+    "l": -0.02
+   },
+   {
+    "box": [
+     232,
+     50,
+     250,
+     139
+    ],
+    "color": "#45403c",
+    "k": 0.7,
+    "l": 0
+   },
+   {
+    "box": [
+     197,
+     54,
+     211,
+     139
+    ],
+    "color": "#a8c2de",
+    "k": 0.9,
+    "l": 0.08
+   },
+   {
+    "box": [
+     216,
+     70,
+     232,
+     139
+    ],
+    "color": "#e2ded2",
+    "k": 0.8,
+    "l": 0.12
+   },
+   {
+    "box": [
+     250,
+     68,
+     268,
+     139
+    ],
+    "color": "#6f9cd0",
+    "k": 0.9,
+    "l": 0.05
+   }
+  ],
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

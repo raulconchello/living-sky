@@ -1,0 +1,27 @@
+{
+ "id": "fornoles",
+ "name": "Fórnoles",
+ "country": "ES",
+ "lat": 40.8935,
+ "lon": -0.004,
+ "radius_km": 4,
+ "label": "Fórnoles",
+ "view": "From the pine and olive hillside west-north-west of the village (40.8995 N, 0.0205 W, about 720 m, above the TE-V-3004 approach road from Valjunquera), looking ESE across the barranco at Fórnoles on its ridge, 1.5 km away. The church of Santa María la Mayor stands at the north end of the village. Its 18th-century Baroque bell tower rises at the south-west corner of the Gothic hall church, whose west front (low mixtilinear crown) and north side face us, with the polygonal apse on the left. The houses climb the crest to the right towards the castle hill, which is hidden behind the rain column. The north spur drops to the left into the Barranco de les Canals. Olive terraces with dry-stone walls step down the flank, and Aleppo pine woods cover our side of the valley and the hills beyond. On the horizon, 23 to 33 km away, is the serrated wall of the Ports de Beceite (Mont Caro almost straight behind the tower, then Penyagalera and the Tossal dels Tres Reis). Village and church are drawn at 1 m = 1.28 dp, with house spacing along the crest compressed about 2:1. The terrain is ray-cast from SRTM 1-arcsecond data at 8 dp per degree horizontally. Its vertical gain rises from about 10 dp per degree under the clock text to about 20 behind the hero, and the local relief of the Ports is doubled, so the Ports are at about half their telephoto height and the tower stays the hero. HERO_SCALE=1: the tower is 52.5 dp tall from its base (y 119.9) to the top of the cross.",
+ "landmarks": [
+  "Bell tower of the Iglesia de Santa María la Mayor (18th-century Baroque, restored in 2017; about 30 m per local sources, about 40 m to the cross by photo proportions): square lower body, square middle body with concave corners, belfry, octagonal top, low copper cap with ball, iron cross and weathervane",
+  "Iglesia de Santa María la Mayor: Gothic hall church with three naves, polygonal apse and a Baroque mixtilinear west front",
+  "Village of Fórnoles on its ridge (706 to 720 m), houses with low Arab-tile roofs climbing towards the castle ruins",
+  "Olive terraces with dry-stone walls on the flank and the north spur",
+  "Aleppo pine woods of the Matarraña hills",
+  "Ports de Beceite on the horizon (Mont Caro 1441 m, Penyagalera, Tossal dels Tres Reis; 23 to 33 km)"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   168,
+   268
+  ],
+  "heroColor": "#c4a27a",
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

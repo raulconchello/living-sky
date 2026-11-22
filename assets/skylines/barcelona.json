@@ -1,0 +1,129 @@
+{
+ "id": "barcelona",
+ "name": "Barcelona",
+ "country": "ES",
+ "lat": 41.3874,
+ "lon": 2.1686,
+ "radius_km": 12,
+ "label": "Barcelona",
+ "view": "Barcelona seen from the sea, composed like a calm postcard. The Sagrada Família is the hero (94.9 dp at HERO_SCALE 1; sea-side view, Tower of Jesus Christ with its cross complete since 2026). Behind it the Collserola ridge with the Torre de Collserola and the Sagrat Cor on Tibidabo. Composed in depth: Montjuïc with its castle as a soft nearer hill on the left, the Mirador de Colom at its foot by the port, Casa Batlló (dragon roof, turret cross) among the Eixample roofs, and Torre Glòries at middle distance right of the Sagrada; the Eixample waterfront and a sea glint in front. Night: warm floodlight on the Sagrada, the Sagrat Cor and Colom, a dim glow on Batlló, a faint castle, sparse windows.",
+ "landmarks": [
+  "Sagrada Família (172.5 m, Tower of Jesus Christ with its cross, 2026)",
+  "Tibidabo: Temple del Sagrat Cor",
+  "Torre de Collserola (288 m)",
+  "Montjuïc and its castle",
+  "Mirador de Colom (60 m)",
+  "Casa Batlló (dragon roof, turret cross)",
+  "Torre Glòries (144 m)",
+  "Eixample waterfront",
+  "Mediterranean sea glint"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   192,
+   246
+  ],
+  "heroColor": "#c9b08a",
+  "heroTopColor": "#dccaa6",
+  "water": [
+   -5,
+   138.5,
+   385,
+   162
+  ],
+  "accents": [
+   {
+    "box": [
+     249,
+     82,
+     265,
+     134
+    ],
+    "color": "#5d8cc4",
+    "k": 0.95,
+    "l": 0.05
+   },
+   {
+    "box": [
+     87,
+     105,
+     105,
+     131
+    ],
+    "color": "#6fa3a0",
+    "k": 0.6,
+    "l": 0.03
+   },
+   {
+    "box": [
+     46.5,
+     100,
+     58.5,
+     140
+    ],
+    "color": "#d8c8a8",
+    "k": 0.5,
+    "l": 0.04
+   },
+   {
+    "box": [
+     -5,
+     112,
+     46,
+     140
+    ],
+    "color": "#6d8455",
+    "k": 0.45,
+    "l": 0
+   },
+   {
+    "box": [
+     143,
+     82,
+     169,
+     116
+    ],
+    "color": "#9aa6b8",
+    "k": 0.5,
+    "l": 0
+   },
+   {
+    "box": [
+     189,
+     127,
+     248,
+     160
+    ],
+    "color": "#b8714c",
+    "k": 0.55,
+    "l": 0
+   }
+  ],
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords).",
+  "heroBottom": 127.5,
+  "heroModel": "towers",
+  "towers": {
+   "lit": [
+    "#d9c6a1",
+    "#e0cfae",
+    "#f6f0e3"
+   ],
+   "shade": [
+    "#786f6c",
+    "#7e7672",
+    "#ada9ad"
+   ],
+   "overcast": [
+    "#9d9486",
+    "#a39a8c",
+    "#c6c1b8"
+   ],
+   "mosaic": "#d9a95c",
+   "mosaicK": 0.6,
+   "openings": 2.6,
+   "silhouette": "#4b4d58",
+   "note": "Landmark model \"towers\" (DaylightGrade.heroTowers): the day SVG paints the Sagrada in warm greys, one flat tone per element as a depth code (nearer = darker), R - B = material (+8 old stone, 0 new stone, +18 mosaic), tones >= 120 white glazed parts. Colours: [old, new, white] stone, lit / shadow in the sun and overcast; at low sun the landmark fades into the one silhouette tone (never into the colour code)."
+  }
+ }
+}

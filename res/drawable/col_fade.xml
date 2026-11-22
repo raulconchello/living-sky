@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 22 dp dark fade at the bottom edge of the column: rgba(14,16,24,0) -> rgba(14,16,24,.62) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="270" android:startColor="#000E1018" android:endColor="#9E0E1018" />
+</shape>

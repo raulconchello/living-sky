@@ -1,0 +1,35 @@
+{
+ "id": "blanes",
+ "name": "Blanes",
+ "country": "ES",
+ "lat": 41.6756,
+ "lon": 2.7932,
+ "radius_km": 2.5,
+ "label": "Blanes",
+ "view": "From S'Abanell beach looking north-east: Sa Palomera, the rock that marks the start of the Costa Brava, with the Portal de la Costa Brava arch on its sandy isthmus; behind it the old town with the Gothic bell tower of Santa Maria and the Turo de Sant Joan rising to the Castell de Sant Joan keep and hermitage; the Mediterranean in front with a sea glint, the S'Abanell promenade (umbrella pines, palms, apartment blocks) on the left. Heights to scale per layer as for a viewer about 460 m from the rock (rock 1.4 dp/m, town 0.65 dp/m, hill 0.40 dp/m); hill outline from an EU-DEM panorama, horizontal spacing compressed to fit the hero zone. The port breakwater and the Marimurtra cliffs (cypresses, Templet de Linne) lie further right, behind the rain column.",
+ "landmarks": [
+  "Sa Palomera (20.8 m, with its flagpole)",
+  "Portal de la Costa Brava (Antoni Rossello, 2002, ~9 m)",
+  "Castell de Sant Joan keep (~15 m, 7.25 m diameter) on the Turo de Sant Joan (172 m)",
+  "Ermita de Sant Joan and its belfry",
+  "Santa Maria de Blanes bell tower (30.85 m)",
+  "S'Abanell beach promenade",
+  "Port de Blanes breakwater (behind the rain column)",
+  "Jardi Botanic Marimurtra cliffs and Templet de Linne (behind the rain column)"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   168,
+   268
+  ],
+  "heroColor": "#a8927a",
+  "water": [
+   -5,
+   139,
+   385,
+   150
+  ],
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

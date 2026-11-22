@@ -1,0 +1,35 @@
+{
+ "id": "ulm",
+ "name": "Ulm",
+ "country": "DE",
+ "lat": 48.3984,
+ "lon": 9.9916,
+ "radius_km": 15,
+ "label": "Weststadt, Ulm",
+ "view": "From the Neu-Ulm bank of the Danube near the Herdbruecke, looking north-west across the river at Ulm's old town. The Minster rises behind the Danube city wall: the 161.5 m west tower is on the left and the nave with its flying-buttress pinnacles runs right to the twin choir towers and the apse (side elevation, 1 m = 0.6 dp). To the left, the leaning Metzgerturm stands among the Fischerviertel gables behind the wall (1 m = 0.72 dp; its 3.3 degree lean is drawn at 4 degrees so it reads at phone size). Behind them are old-town roofs and a low Swabian Alb ridge (Kuhberg, Michelsberg), with a big tree on the Neu-Ulm bank in the foreground. By day the Danube shows a glint; at night the floodlit Minster and the promenade lamps reflect in it.",
+ "landmarks": [
+  "Ulm Minster west tower (161.5 m; galleries at 70, 102 and 143 m; openwork crocketed spire)",
+  "Ulm Minster nave and choir (123.6 m long)",
+  "Ulm Minster choir towers (86 m)",
+  "Metzgerturm (36 m, leaning 2.05 m to the north-west)",
+  "Danube city wall and promenade",
+  "Fischerviertel gables",
+  "Swabian Alb ridge (Kuhberg, Michelsberg)",
+  "Danube"
+ ],
+ "daylight": {
+  "palette": "alpine",
+  "hero": [
+   186,
+   268
+  ],
+  "heroColor": "#c8c0b0",
+  "water": [
+   -5,
+   138.5,
+   385,
+   162
+  ],
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

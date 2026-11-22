@@ -1,0 +1,31 @@
+{
+ "id": "alcaniz",
+ "name": "Alcañiz",
+ "country": "ES",
+ "lat": 41.0507,
+ "lon": -0.1322,
+ "radius_km": 15,
+ "label": "Alcañiz",
+ "view": "Composed postcard view from the Guadalope vega south-west of the town, looking NE, keeping the real left-to-right order from there. On the left, the Colegiata de Santa María la Mayor: the 45 m Gothic bell tower (flat terrace, domed corner turret, wrought-iron bell cage), the baroque hall church with its tiled cupola and lantern, and the monumental south-east front, a great arched portal between two bell towers with octagonal belfries and bell-shaped caps. In the middle, Pui Pinos rises as a broad wooded hill, lifting the Castillo de los Calatravos (the Parador) high in the frame: the palace front between two arcaded corner towers with pyramid roofs, the Gothic keep and the chapel spire behind it. The castle stands on terraced curtain walls with cubos and sloping buttresses that run down into the hill. On the right, at the hill's east foot, the Iglesia del Carmen: a plain gabled ashlar front with an oculus, and its tower rising to an octagonal belfry and a small cupola. The old town climbs the west slope, the Guadalope glints in front, and flat-topped Bajo Aragón mesas lie behind. At night the castle, Colegiata and Carmen are floodlit warm. Liberties taken for recognisability: the three landmarks are pulled closer together (the Colegiata is really 330 m north of the castle and the Carmen about 170 m south-east of it), and the two churches are brought forward in front of the hill. The Colegiata is turned a little so its baroque front shows beside the Gothic tower and dome. Buildings are sized for the town-landmark tier rather than one true perspective, each with its own true proportions: Colegiata 1 m = 1.0 dp, castle 1 m = 1.0 dp, Carmen 1 m = 1.25 dp. The hill is drawn larger and rounder than true so it reads as the castle's base. The distant mesas are drawn at about half their angular height so they stay under the clock. HERO_SCALE (env var for src/alcaniz.py) scales the three buildings about their bases while the hill stays fixed.",
+ "landmarks": [
+  "Colegiata de Santa María la Mayor: Gothic bell tower (45 m, plus a wrought-iron bell cage)",
+  "Colegiata de Santa María la Mayor: baroque front with its great arch and twin bell towers",
+  "Colegiata de Santa María la Mayor: tiled cupola with lantern (about 52 m)",
+  "Castillo de los Calatravos / Parador de Alcañiz (palace front 53 m with arcaded corner towers; Gothic keep about 27 m; chapel spire)",
+  "Terraced curtain walls, cubos and buttresses of the castle",
+  "Pui Pinos hill with its pine woods",
+  "Iglesia del Carmen (Carmelite church, 17th century: gabled front with oculus, tower with octagonal belfry and cupola)",
+  "Old town climbing the west slope",
+  "Río Guadalope",
+  "Flat-topped sandstone mesas (cabezos) of the Bajo Aragón"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   168,
+   268
+  ],
+  "heroColor": "#c9a77c",
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <FrameLayout
+        android:layout_width="379.4dp"
+        android:layout_height="192.4dp"
+        android:layout_gravity="center"
+        android:background="@drawable/loading_card">
+        <TextClock
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="13dp"
+            android:layout_marginTop="16dp"
+            android:format12Hour="HH:mm"
+            android:format24Hour="HH:mm"
+            android:fontFamily="@font/inter_extralight"
+            android:fontFeatureSettings="tnum, cv11, -calt"
+            android:textSize="54dp"
+            android:letterSpacing="-0.0333333"
+            android:textColor="#FFFFFFFF"
+            android:includeFontPadding="false" />
+    </FrameLayout>
+</FrameLayout>

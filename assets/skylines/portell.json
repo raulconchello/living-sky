@@ -1,0 +1,27 @@
+{
+ "id": "portell",
+ "name": "Portell",
+ "country": "ES",
+ "lat": 41.7419,
+ "lon": 1.3849,
+ "radius_km": 4,
+ "label": "Portell, Sant Ramon",
+ "view": "From the top of Portell (Placa Major by the Torre de Guaita, ~660 m) looking south-west (bearing 215 deg) over the village roofs and the Segarra cereal plateau to the Santuari / Convent de Sant Ramon de Portell, 2.2 km away on the same plateau: the convent's east and north faces, the church cimbori and the north facade with its espadanya. Behind it and across the left half, 26-37 km away, the wind farms of the Conca de Barbera uplands line the horizon (red aviation lights at night). Convent 3D-modelled from aerial imagery/OSM and photos and projected along the real view direction at 1 m = 1.35 dp (cimbori + cross about 56 dp, town-landmark tier); far ridge (SRTM) and turbines (OSM positions) in the same angular frame.",
+ "landmarks": [
+  "Santuari / Convent de Sant Ramon de Portell, 'l'Escorial de la Segarra' (1675-1730): cimbori with octagonal drum and open lantern (~36 m, cross ~41 m)",
+  "Convent block around the cloister (~48 x 59 m, three storeys, eaves ~12 m) with a small lantern on the north range",
+  "Church north facade (pediment, oculus) with the two-bell espadanya",
+  "Les Forques / Passanant i Belltall wind farms on the Conca de Barbera uplands (26-37 km SW, about 15 turbines in view)",
+  "Rolling cereal fields of the Segarra with holm oaks and a masia",
+  "Roofs of Portell in the foreground"
+ ],
+ "daylight": {
+  "palette": "med",
+  "hero": [
+   168,
+   268
+  ],
+  "heroColor": "#cdb08a",
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

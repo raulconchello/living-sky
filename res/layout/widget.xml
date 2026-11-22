@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Living Sky widget. Everything except the clock and the scrollable column is one pre-rendered bitmap (@id/bg).
+  Sizes / margins below are dp defaults; WidgetUpdater sets the exact pixel geometry at runtime.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/card"
+        android:layout_width="379.4dp"
+        android:layout_height="192.4dp"
+        android:layout_gravity="center">
+
+        <ImageView
+            android:id="@+id/bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:contentDescription="Living Sky. Tap to refresh." />
+
+        <!-- clock: two stacked TextClocks give the two CSS text shadows (soft 10 px glow below, 1 px drop on top) -->
+        <TextClock
+            android:id="@+id/clock_glow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="-3dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:format12Hour="HH:mm"
+            android:format24Hour="HH:mm"
+            android:fontFamily="@font/inter_extralight"
+            android:fontFeatureSettings="tnum, cv11, -calt"
+            android:textSize="54dp"
+            android:letterSpacing="-0.0333333"
+            android:textColor="#FFFFFFFF"
+            android:includeFontPadding="false"
+            android:singleLine="true"
+            android:shadowColor="#590A0C14"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="21.87"
+            android:importantForAccessibility="no" />
+
+        <TextClock
+            android:id="@+id/clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="-3dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:format12Hour="HH:mm"
+            android:format24Hour="HH:mm"
+            android:fontFamily="@font/inter_extralight"
+            android:fontFeatureSettings="tnum, cv11, -calt"
+            android:textSize="54dp"
+            android:letterSpacing="-0.0333333"
+            android:textColor="#FFFFFFFF"
+            android:includeFontPadding="false"
+            android:singleLine="true"
+            android:shadowColor="#590A0C14"
+            android:shadowDx="0"
+            android:shadowDy="2.625"
+            android:shadowRadius="1.407" />
+
+        <!-- Clock as a bitmap in the bundled Inter ExtraLight (launchers inflate widgets in a restricted context, where
+             TextView ignores app fonts). Repainted every minute by a partial update of this view only. -->
+        <ImageView
+            android:id="@+id/clock_img"
+            android:layout_width="196dp"
+            android:layout_height="80dp"
+            android:layout_marginTop="10dp"
+            android:scaleType="fitXY"
+            android:clickable="false"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+
+        <!-- tap target for the clock (opens Google Clock) -->
+        <FrameLayout
+            android:id="@+id/clock_tap"
+            android:layout_width="152dp"
+            android:layout_height="54dp"
+            android:layout_marginLeft="13dp"
+            android:layout_marginTop="22dp"
+            android:contentDescription="Clock"
+            android:visibility="gone" />
+
+        <!-- timeline column: 48 h of pre-rendered bitmap slices in a scrollable list, clipped to 14 dp corners -->
+        <FrameLayout
+            android:id="@+id/col"
+            android:layout_width="102dp"
+            android:layout_height="178.4dp"
+            android:layout_marginLeft="270dp"
+            android:layout_marginTop="7dp"
+            android:background="@drawable/col_clip"
+            android:clipToOutline="true">
+
+            <ListView
+                android:id="@+id/list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:divider="@null"
+                android:dividerHeight="0dp"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:fadingEdge="none"
+                android:requiresFadingEdge="none"
+                android:listSelector="@android:color/transparent"
+                android:cacheColorHint="@android:color/transparent" />
+
+            <ImageView
+                android:id="@+id/fade"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom"
+                android:scaleType="fitXY"
+                android:src="@drawable/col_fade"
+                android:clickable="false"
+                android:focusable="false"
+                android:importantForAccessibility="no" />
+
+            <!-- values mode only: static "Rain · RH · UV" legend in the bottom fade (never scrolls) -->
+            <ImageView
+                android:id="@+id/col_legend"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom"
+                android:scaleType="fitXY"
+                android:clickable="false"
+                android:focusable="false"
+                android:visibility="gone"
+                android:contentDescription="Rain probability, relative humidity, UV" />
+
+            <!-- next alarm 7.5-12 h ahead: a static tab on the bottom edge (never scrolls); its own tap opens the
+                 alarm in Clock, so it does not toggle the values -->
+            <ImageView
+                android:id="@+id/col_alarm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:scaleType="fitXY"
+                android:visibility="gone"
+                android:contentDescription="Next alarm" />
+        </FrameLayout>
+    </FrameLayout>
+</FrameLayout>

@@ -1,0 +1,51 @@
+{
+ "id": "munich",
+ "name": "Munich",
+ "country": "DE",
+ "lat": 48.1372,
+ "lon": 11.5756,
+ "radius_km": 25,
+ "label": "Munich",
+ "view": "Foehn-day view from the Olympiaberg (Olympic hill, about 45 m above the old town) looking SSE over the Altstadt 3.9 km away, as in the classic photos from the hill: the Neues Rathaus tower, Alter Peter, the Mariahilf spire in the Au and the long steep roof and twin domed towers of the Frauenkirche, with the forested moraine hills and the Alps behind. One perspective scale for the old town (2.85 dp per m per km of distance: Frauenkirche 0.74 dp/m); the Rathaus is moved about 15 dp right to stay in the hero zone and the Alps are compressed vertically to stay under the text.",
+ "landmarks": [
+  "Frauenkirche (98.5 m)",
+  "Neues Rathaus tower (85 m)",
+  "Alter Peter / St. Peter (91 m)",
+  "Mariahilfkirche spire, Au (92 m)",
+  "Alps on Foehn days (Mangfall Mountains and the high chain beyond)"
+ ],
+ "daylight": {
+  "palette": "alpine",
+  "hero": [
+   198,
+   268
+  ],
+  "heroColor": "#94563f",
+  "heroTopColor": "#7f4c40",
+  "accents": [
+   {
+    "box": [
+     238,
+     58,
+     268,
+     79
+    ],
+    "color": "#5aa58c",
+    "k": 1,
+    "l": 0.06
+   },
+   {
+    "box": [
+     168,
+     58,
+     196,
+     82
+    ],
+    "color": "#6a9c8a",
+    "k": 0.7,
+    "l": 0
+   }
+  ],
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}

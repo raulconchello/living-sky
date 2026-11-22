@@ -1,0 +1,29 @@
+{
+ "id": "stuttgart",
+ "name": "Stuttgart",
+ "country": "DE",
+ "lat": 48.7775,
+ "lon": 9.18,
+ "radius_km": 20,
+ "label": "Stuttgart",
+ "view": "From the Birkenkopf (511 m) on the west rim of the Kessel, looking east across the basin: the city centre on the valley floor (left, in the order seen from there) and the Fernsehturm rising from the woods of the Hoher Bopser (right), with the Fernmeldeturm on the Frauenkopf faint behind and houses climbing the slopes. Horizontal positions compressed into a panorama; one scale per layer: city 0.37 dp/m, Bopser 0.32 dp/m, Frauenkopf 0.24 dp/m; rim terrain compressed; Mercedes star drawn ~1.6x for legibility.",
+ "landmarks": [
+  "Fernsehturm on the Hoher Bopser (216.6 m)",
+  "Fernmeldeturm Frauenkopf (192 m)",
+  "Stiftskirche (octagonal west tower 61 m, south tower with pointed roof)",
+  "Tagblatt-Turm (61 m)",
+  "Rathaus tower (61 m)",
+  "Hauptbahnhof tower with the Mercedes star (56 m)",
+  "Neues Schloss and Jubiläumssäule (30 m)",
+  "Kriegsberg vineyards"
+ ],
+ "daylight": {
+  "palette": "alpine",
+  "hero": [
+   168,
+   268
+  ],
+  "heroColor": "#bdb8ae",
+  "note": "Daylight grade hints (proposal B): palette alpine|med|steel, hero x-range dp, colours, accent / water boxes in dp (card coords)."
+ }
+}
