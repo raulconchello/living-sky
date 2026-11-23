@@ -65,8 +65,10 @@ final class Updater {
     }
 
     /**
-     * The next alarm (hours since epoch) from AlarmManager.getNextAlarmClock(), or NaN. Android exposes only the next
-     * one; snoozes report the snooze time. Debug override (prefs "alarm"): "none", "Mon 08:45" or "08:45".
+     * The next alarm (hours since epoch) from AlarmManager.getNextAlarmClock(), or NaN, also when a non-clock app set
+     * it (see {@link #isClockApp}). Android exposes only the next one, so a real alarm behind a reminder shows once the
+     * reminder has passed (NEXT_ALARM_CLOCK_CHANGED); snoozes report the snooze time. Debug override (prefs "alarm"):
+     * "none", "Mon 08:45" or "08:45".
      */
     static double nextAlarm(Context c, Prefs prefs, double now, java.util.TimeZone tz) {
         String ov = prefs.alarmOverride();
@@ -96,10 +98,36 @@ final class Updater {
         }
         try {
             android.app.AlarmManager.AlarmClockInfo a = c.getSystemService(android.app.AlarmManager.class).getNextAlarmClock();
-            return a == null ? Double.NaN : a.getTriggerTime() / 3600000.0;
+            if (a == null) return Double.NaN;
+            String by = alarmOwner(a);
+            if (!isClockApp(c, by)) { // e.g. a calendar or meeting reminder registered as an alarm clock
+                Log.i(Locator.TAG, "next alarm set by " + by + ", not a clock app: hidden");
+                return Double.NaN;
+            }
+            return a.getTriggerTime() / 3600000.0;
         } catch (Exception e) {
             return Double.NaN;
         }
+    }
+
+    /** The app that set the alarm (the creator of its "show" intent), or null when it gave none. */
+    static String alarmOwner(android.app.AlarmManager.AlarmClockInfo a) {
+        android.app.PendingIntent show = a.getShowIntent();
+        return show == null ? null : show.getCreatorPackage();
+    }
+
+    /**
+     * Only alarms from a clock app get the pill: any app may register an "alarm clock" (calendar and meeting apps do,
+     * for reminders), and Android reports only the next one. A clock app = Google Clock or any app that handles
+     * AlarmClock.ACTION_SET_ALARM (the phone's own clock, alarm apps; declared in the manifest's queries).
+     */
+    static boolean isClockApp(Context c, String pkg) {
+        if (pkg == null) return false;
+        if (pkg.equals(WidgetUpdater.DESKCLOCK)) return true;
+        android.content.Intent set = new android.content.Intent(android.provider.AlarmClock.ACTION_SET_ALARM);
+        for (android.content.pm.ResolveInfo r : c.getPackageManager().queryIntentActivities(set, 0))
+            if (r.activityInfo != null && pkg.equals(r.activityInfo.packageName)) return true;
+        return false;
     }
 
     /** NEXT_ALARM_CLOCK_CHANGED: redraw only the column with the new alarm (full render if nothing is in memory). */

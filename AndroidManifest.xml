@@ -9,9 +9,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
-    <!-- tap on the clock opens Google Clock -->
+    <!-- tap on the clock opens Google Clock; apps that handle SET_ALARM count as clock apps for the alarm pill -->
     <queries>
         <package android:name="com.google.android.deskclock" />
+        <intent>
+            <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
     </queries>
 
     <application

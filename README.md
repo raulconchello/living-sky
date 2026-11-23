@@ -7,7 +7,7 @@ An Android home-screen widget that shows your city's skyline under the sky you h
 - **Live sky.** The sun and moon in their real positions, plus clouds, rain, snow, fog, storms and sunsets.
 - **Your skyline.** 11 hand-drawn cities. Anywhere else, one is drawn automatically from OpenStreetMap.
 - **72-hour timeline.** Temperature and rain for each hour. Tap it for rain chance, humidity and UV.
-- **Next alarm.** Shown in the timeline.
+- **Next alarm.** Shown in the timeline. Only alarms set in a clock app: calendar and meeting reminders are left out.
 - **No account and no API key.** Weather comes from [Open-Meteo](https://open-meteo.com).
 
 ## Skylines
