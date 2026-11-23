@@ -100,10 +100,18 @@ public final class Wx {
         return i >= 0 ? hPP[i] : 0;
     }
 
-    /** Cloud cover (0..100) for the column's sky band: the ensemble members' mean, else the deterministic hourly. */
+    /**
+     * Cloud cover (0..100) for the column's sky band, with the rain's handover: the deterministic hourly for the next
+     * 2 h (so the column's "now" matches the card, which reads the same run), blended into the ensemble members' mean
+     * by now + 3 h. The members' mean rarely reaches 0 or 100 (a split between clear and low cloud averages to broken
+     * cloud), so it only drives the hours where the main run is less certain anyway.
+     */
     public double colCloud(double t) {
-        if (ens != null) { double c = ens.cloudAt(t); if (c >= 0) return c; }
-        return hourly(hCloud, t);
+        double e = ens != null ? ens.cloudAt(t) : -1;
+        if (e < 0) return hourly(hCloud, t);
+        if (!hasHourly()) return e;
+        double w = detWeight(t);
+        return w >= 1 ? hourly(hCloud, t) : w <= 0 ? e : w * hourly(hCloud, t) + (1 - w) * e;
     }
 
     /** Rain probability (0..100) around time t, for the column's sky band ("rain is coming" dimming): same blend. */

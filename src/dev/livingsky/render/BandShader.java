@@ -71,7 +71,7 @@ public final class BandShader {
         }
         double t = now + y / pxh;
         rEl = Sun.elevation(t, lat, lon);
-        rCc = wx.colCloud(t) / 100;          // ensemble members' mean where available
+        rCc = wx.colCloud(t) / 100;          // main run for 2 h, then the ensemble members' mean
         rPmm = wx.colRate(t);
         rPp = wx.colProbAt(t) / 100;
         rPt = wx.colType(t);

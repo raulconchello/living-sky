@@ -33,7 +33,7 @@ src/dev/livingsky/
   WidgetUpdater    builds the RemoteViews: card, clock, timeline list, taps
   Updater          location → forecast → skyline → render → push
   WeatherClient    Open-Meteo forecast
-  EnsembleClient   Open-Meteo ensemble (40 runs), used for rain chance and amount
+  EnsembleClient   Open-Meteo ensemble (40 runs), used for rain chance and amount, and clouds
   Places           picks the nearest hand-drawn city, else the automatic skyline
   Scheduler        re-renders every quarter hour, fetches the forecast every 30 min
   DebugReceiver    adb commands, listed below
@@ -44,11 +44,13 @@ assets/skylines/   hand-drawn cities (see SKYLINES.md)
 Notes:
 
 - The clock is a bitmap redrawn every minute, because launchers ignore fonts bundled with an app.
-- The timeline's rain:
-  - next 2 h: the main forecast;
+- The timeline's rain and clouds:
+  - next 2 h: the main forecast, the same one the card reads, so "now" agrees with the card;
   - after 3 h: the mean of the 40-run ensemble;
   - in between: a blend of the two.
+- The "Rain %" values always come from the ensemble: a single forecast has no chance of rain.
 - A rain chance below 10 % draws no bar.
+- The alarm pill shows only alarms from a clock app (Google Clock, or any app that handles "set an alarm"). Calendar and meeting apps can register reminders as alarms too; those are left out and logged (`adb logcat -s LivingSky`) as `not a clock app: hidden`.
 
 ## Debug
 
