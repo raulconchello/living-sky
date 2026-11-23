@@ -32,7 +32,7 @@ public class DesktopSky {
         String dir = a[0];
         boolean grain = a.length > 1 && a[1].equals("grain");
         for (boolean night : new boolean[]{false, true}) {
-            Wx w = MockData.build(night);
+            Timeline w = MockData.timeline(night, false);
             double now = MockData.now(night);
             SkyShader.Params p = Scene.sky(w, now, MockData.LAT, MockData.LON, true, Scene.MODE_AUTO, 1);
             System.out.println((night ? "night" : "day") + " el=" + p.el + " sun=" + p.sunX + "," + p.sunY + " night=" + p.night);
@@ -46,7 +46,7 @@ public class DesktopSky {
             save(full, Wc, Hc, dir + "/band_" + (night ? "night" : "day") + ".png");
         }
         { // sky9.js sunny reference (make_sunny.py): cloud .12, approach off
-            Wx w = MockData.build(false, true);
+            Timeline w = MockData.timeline(false, true);
             double now = MockData.now(false);
             SkyShader.Params p = Scene.sky(w, now, MockData.LAT, MockData.LON, true, Scene.MODE_AUTO, 1);
             sky(p, dir + "/sky_sunny.png", grain);

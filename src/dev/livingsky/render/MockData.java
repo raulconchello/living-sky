@@ -53,10 +53,11 @@ public final class MockData {
         Wx w = new Wx();
         w.lat = LAT; w.lon = LON; w.tz = "Europe/Berlin";
         int n = HOURLY.length;
-        w.hT = new double[n]; w.hTemp = new double[n]; w.hCloud = new double[n]; w.hPP = new double[n]; w.hUV = new double[n]; w.hCode = new int[n];
+        w.hT = new double[n]; w.hTemp = new double[n]; w.hCloud = new double[n]; w.hUV = new double[n]; w.hCode = new int[n];
+        w.hGust = new double[n]; w.hPrecip = new double[n]; w.hSnow = new double[n];
         for (int i = 0; i < n; i++) {
             double[] r = HOURLY[i];
-            w.hT[i] = t0 + r[0]; w.hTemp[i] = r[1]; w.hCode[i] = (int) r[2]; w.hPP[i] = r[3]; w.hCloud[i] = r[5];
+            w.hT[i] = t0 + r[0]; w.hTemp[i] = r[1]; w.hCode[i] = (int) r[2]; w.hCloud[i] = r[5];
         }
         int m = MIN15.length;
         w.mT = new double[m]; w.mPrecip = new double[m]; w.mRain = new double[m]; w.mSnow = new double[m]; w.mCode = new int[m];
@@ -67,11 +68,9 @@ public final class MockData {
             w.mRain[i] = (w.mCode[i] >= 71 && w.mCode[i] <= 77) ? 0 : r[1];
         }
         // daily: Sun 22 (today) .. Thu 26
-        int[] codes = {61, 66, 45, 3, 71};
-        double[] mx = {4.8, 2.2, 0.2, -1.0, -1.3}, mn = {1.2, -2.2, -4.2, -4.2, -4.0};
         double[][] sun = {{7 + 37 / 60.0, 16 + 34 / 60.0}, {7 + 39 / 60.0, 16 + 33 / 60.0}, {7 + 40 / 60.0, 16 + 32 / 60.0},
                 {7 + 42 / 60.0, 16 + 31 / 60.0}, {7 + 43 / 60.0, 16 + 30 / 60.0}};
-        w.dT = new double[5]; w.dMax = mx; w.dMin = mn; w.dCode = codes; w.dRise = new double[5]; w.dSet = new double[5];
+        w.dT = new double[5]; w.dRise = new double[5]; w.dSet = new double[5];
         for (int i = 0; i < 5; i++) {
             w.dT[i] = t0 + 24 * (i + 1);
             w.dRise[i] = w.dT[i] + sun[i][0];
@@ -86,15 +85,27 @@ public final class MockData {
                 int hh = (int) Math.round(HOURLY[i][0]) % 24;
                 w.hTemp[i] += 2.2;
                 w.hCode[i] = hh >= 8 && hh <= 16 ? (hh % 5 == 0 ? 1 : 0) : 0;
-                w.hPP[i] = 0;
                 w.hCloud[i] = 8;
             }
             for (int i = 0; i < m; i++) { w.mPrecip[i] = 0; w.mRain[i] = 0; w.mSnow[i] = 0; w.mCode[i] = 0; }
-            w.dCode = new int[]{0, 0, 2, 0, 3};
-            w.dMax = new double[]{8, 7, 6, 5, 4};
-            w.dMin = new double[]{1, -1, 0, -2, -1};
             w.temp = 6; w.feels = 4; w.uv = 1; w.rh = 68; w.code = 0; w.cloud = 12;
         }
         return w;
+    }
+
+    /** The sketch's timeline (its hourly data covers only Sun-Mon, so the strip keeps the sketch's fixed days). */
+    public static Timeline timeline(boolean night, boolean sunny) {
+        Wx w = build(night, sunny);
+        Timeline tl = Timeline.build(w, null, null, now(night), true);
+        String[] icons = sunny ? new String[]{"clear", "clear", "partly", "clear", "overcast"} : new String[]{"rain", "sleet", "fog", "overcast", "snow"};
+        double[] mx = sunny ? new double[]{8, 7, 6, 5, 4} : new double[]{4.8, 2.2, 0.2, -1.0, -1.3};
+        double[] mn = sunny ? new double[]{1, -1, 0, -2, -1} : new double[]{1.2, -2.2, -4.2, -4.2, -4.0};
+        tl.day = new WxClass.Day[5];
+        for (int i = 0; i < 5; i++) {
+            WxClass.Day d = new WxClass.Day();
+            d.icon = icons[i]; d.max = mx[i]; d.min = mn[i];
+            tl.day[i] = d;
+        }
+        return tl;
     }
 }

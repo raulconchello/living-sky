@@ -6,16 +6,25 @@ import static dev.livingsky.render.Noise.sm;
 /**
  * The timeline column's continuous sky band: port of bandShade() from sky8.js (one continuous sky whose colour follows
  * the sun elevation, cloud cover, rain probability and precipitation of each moment), blended per hour with sky9.js
- * clear-sky ramp by cloud cover, plus fog hours. Content y = (t - now) * pxh (dp).
+ * clear-sky ramp by cloud cover, plus fog hours. Content y = (t - now) * pxh (dp). Everything comes from the
+ * {@link Timeline}: the cloud curve the card also reads, and the bars' own samples (P, R, type, gated flags).
  */
 public final class BandShader {
     private final Noise N;
-    private final Wx wx;
+    private final Timeline tl;
     private final double now, pxh, lat, lon;
 
-    public BandShader(Wx wx, double nowH, double pxhDp, double lat, double lon, long seed) {
-        this.wx = wx; this.now = nowH; this.pxh = pxhDp; this.lat = lat; this.lon = lon;
+    public BandShader(Timeline tl, double nowH, double pxhDp, double lat, double lon, long seed) {
+        this.tl = tl; this.now = nowH; this.pxh = pxhDp; this.lat = lat; this.lon = lon;
         this.N = new Noise(seed);
+    }
+
+    /** The band's precipitation at a sample: the rate if it falls, weighted like the bar's opacity (none without a bar). */
+    private static double rate(Timeline.Sample s) { return WxClass.bar(s) ? s.R * WxClass.presence(s.P) : 0; }
+
+    private static double snowF(Timeline.Sample s) {
+        int ty = WxClass.ptype(s);
+        return ty == Wx.SNOW ? 1 : ty == Wx.SLEET ? 0.5 : 0;
     }
 
     private static final double[][] SKY_KEY = {
@@ -47,15 +56,14 @@ public final class BandShader {
         double ws = 0, rate = 0, snowR = 0, fog = 0, th = 0, ha = 0, cc = 0, pp = 0;
         for (double off : OFFS) {
             double w = 1 - Math.abs(off) / 1.25, tt = t + off;
-            double r = wx.colRate(tt);
-            int ty = wx.colType(tt);
-            double sf = ty == Wx.SNOW ? 1 : ty == Wx.SLEET ? 0.5 : 0;
-            ws += w; rate += w * r; snowR += w * r * sf;
-            fog += w * wx.fogAt(tt);
-            th += w * wx.codeAt(tt, 95, 99, -1);
-            ha += w * Math.min(1, wx.codeAt(tt, 87, 90, 96) + wx.codeAt(tt, 99, 99, -1));
-            cc += w * wx.colCloud(tt) / 100;
-            pp += w * wx.colProbAt(tt) / 100;
+            Timeline.Sample s = tl.at(tt);
+            double r = rate(s);
+            ws += w; rate += w * r; snowR += w * r * snowF(s);
+            fog += w * (s.fog ? 1 : 0);
+            th += w * (s.thunder ? 1 : 0);
+            ha += w * (s.hail ? 1 : 0);
+            cc += w * tl.cloudAt(tt) / 100;
+            pp += w * s.P;
         }
         o[0] = rate / ws; o[1] = rate > 1e-6 ? snowR / rate : 0; o[2] = fog / ws; o[3] = th / ws; o[4] = ha / ws; o[5] = cc / ws; o[6] = pp / ws;
     }
@@ -70,14 +78,15 @@ public final class BandShader {
             sPmm = sm7[0]; sSnow = sm7[1]; sFog = sm7[2] * 0.6; sThunder = sm7[3]; sHail = sm7[4]; sCc = sm7[5]; sPp = sm7[6];
         }
         double t = now + y / pxh;
+        Timeline.Sample s = tl.at(t);
         rEl = Sun.elevation(t, lat, lon);
-        rCc = wx.colCloud(t) / 100;          // main run for 2 h, then the ensemble members' mean
-        rPmm = wx.colRate(t);
-        rPp = wx.colProbAt(t) / 100;
-        rPt = wx.colType(t);
-        rFog = wx.fogAt(t) * 0.6;
-        rThunder = wx.codeAt(t, 95, 99, -1);
-        rHail = wx.codeAt(t, 87, 90, 96) + wx.codeAt(t, 99, 99, -1);
+        rCc = tl.cloudAt(t) / 100;           // the same cloud curve as the card
+        rPmm = rate(s);
+        rPp = s.P;
+        rPt = WxClass.bar(s) ? WxClass.ptype(s) : Wx.DRY;
+        rFog = s.fog ? 0.6 : 0;
+        rThunder = s.thunder ? 1 : 0;
+        rHail = s.hail ? 1 : 0;
         rNight = sm(-4, -10, rEl);
         // per hour: clear ramp below ~30 % cover, the overcast key above ~85 %, blended in between
         rClear = 1 - sm(0.3, 0.85, rCc);
@@ -266,7 +275,7 @@ public final class BandShader {
         for (int i = 0; i < 3; i++) base[i] = cd[i] + (ck[i] - cd[i]) * clear;
         double fp = 1 - 0.14 * sPp;
         for (int i = 0; i < 3; i++) base[i] *= fp;
-        // real cloud shapes: one soft field whose covered area follows the (ensemble) cloud cover of the row
+        // real cloud shapes: one soft field whose covered area follows the timeline's cloud cover of the row
         double d = cloudField(x, y);
         double p = Math.max(0.02, Math.min(0.98, cc));
         double dv = d + 0.12 * Math.log(p / (1 - p)) / 1.702;   // d ~ N(0, 0.12): the area with dv > 0 is about cc

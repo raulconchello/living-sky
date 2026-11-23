@@ -57,7 +57,7 @@ city as the example.
 
 ## Credits
 
-Weather data by [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
+Weather data by [Open-Meteo](https://open-meteo.com) (CC BY 4.0); in Germany, DWD radar and station data via [Bright Sky](https://brightsky.dev). Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
 contributors. [AndroidSVG](https://bigbadaboom.github.io/androidsvg/) (Apache 2.0). [Inter](https://rsms.me/inter/) font (OFL).
 
 MIT License.

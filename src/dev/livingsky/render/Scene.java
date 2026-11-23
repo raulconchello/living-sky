@@ -28,7 +28,11 @@ public final class Scene {
      * @param mode   MODE_AUTO / MODE_DAY / MODE_NIGHT (debug override)
      * @param heroGlow 1 for a hand-drawn landmark that is floodlit at night, lower for generic towns
      */
-    public static SkyShader.Params sky(Wx w, double now, double lat, double lon, boolean mock, int mode, double heroGlow) {
+    /** The card's weather right now: the timeline's fused "now" through the one classifier (same as the word). */
+    public static WxState state(Timeline tl) { return WxClass.classify(tl.now, WxClass.NOW); }
+
+    public static SkyShader.Params sky(Timeline tl, double now, double lat, double lon, boolean mock, int mode, double heroGlow) {
+        Wx w = tl.wx;
         SkyShader.Params p = new SkyShader.Params();
         double el = Sun.elevation(now, lat, lon);
         if (mode == MODE_NIGHT && el > -20) el = -30;
@@ -43,12 +47,12 @@ public final class Scene {
         p.heroGlow = heroGlow;
         if (mock) { // the sketches: overcast with rain approaching (sky8.js), or the sunny variant (sky9.js, cloud .12)
             p.daylight = false; // the approved originals, for pixel comparison
-            boolean sunny = w.cloud < 50;
-            p.cover = sunny ? w.cloud / 100.0 : 1;
+            boolean sunny = tl.now.cloud < 50;
+            p.cover = sunny ? tl.now.cloud / 100.0 : 1;
             p.approach = sunny ? 0 : 1;
             return p;
         }
-        WxState st = WxState.of(w, now);
+        WxState st = state(tl);
         p.state = st.kind;
         double cov = st.cover;
         switch (st.kind) {
@@ -88,9 +92,8 @@ public final class Scene {
             }
         }
         if (st.windy) p.stretch = 0.42;
-        double maxPP = 0;
-        for (double t = now; t <= now + 3; t += 0.5) maxPP = Math.max(maxPP, w.hourly(w.hPP, t));
-        p.approach = st.precip() ? 0 : sm(25, 60, maxPP) * sm(0.5, 0.9, p.cover);
+        // rain is coming: the timeline's P over the next 3 h (the same samples as the column's bars)
+        p.approach = st.precip() ? 0 : sm(0.25, 0.6, tl.maxP(0, 3)) * sm(0.5, 0.9, p.cover);
         return p;
     }
 }

@@ -15,8 +15,13 @@ import java.util.concurrent.Executors;
 
 import dev.livingsky.render.Ensemble;
 import dev.livingsky.render.MockData;
+import dev.livingsky.render.NowObs;
 import dev.livingsky.render.Scene;
+import dev.livingsky.render.Sources;
+import dev.livingsky.render.Timeline;
 import dev.livingsky.render.Wx;
+import dev.livingsky.render.WxClass;
+import dev.livingsky.render.WxState;
 
 /**
  * One update: location -> (weather fetch if stale) -> skyline selection -> render -> push to every widget instance.
@@ -185,10 +190,12 @@ final class Updater {
                 double lat, lon;
                 String place;
                 Wx wx = null;
+                Timeline tl = null;
                 if (in.mock) {
                     boolean night = in.mode == Scene.MODE_NIGHT;
                     boolean sunny = prefs.scenario().equals("clear");
-                    wx = MockData.build(night, sunny);
+                    tl = MockData.timeline(night, sunny);
+                    wx = tl.wx;
                     in.now = MockData.now(night);
                     lat = MockData.LAT;
                     lon = MockData.LON;
@@ -260,21 +267,11 @@ final class Updater {
                         wx.cloud = 100;
                         in.noData = true;
                     }
-                    // an old forecast (offline, rate-limited): its "current" block is stale, so read "now" from the hourly data
-                    if (!in.noData && wx.hasHourly() && in.now - wx.fetchedAtMs / 3600000.0 > 0.75
-                            && in.now >= wx.hT[0] && in.now <= wx.hT[wx.hT.length - 1]) {
-                        double t = wx.hourly(wx.hTemp, in.now), dFeel = wx.feels - wx.temp;
-                        wx.temp = t;
-                        wx.feels = t + dFeel;
-                        wx.code = wx.hourlyCode(in.now);
-                        wx.cloud = wx.hourly(wx.hCloud, in.now);
-                        if (wx.hUV.length == wx.hT.length) wx.uv = wx.hourly(wx.hUV, in.now);
-                        if (wx.hGust.length == wx.hT.length) wx.gust = wx.hourly(wx.hGust, in.now);
-                        info.append("forecast is ").append(Math.round((in.now - wx.fetchedAtMs / 3600000.0) * 60)).append(" min old (now from hourly). ");
-                    }
-                    // the column's rain: ensemble precipitation (bars and "Rain %" from the same members), refreshed hourly
+                    // precipitation from +3 h: the ensemble's probability (bars, "Rain %" and the strip from the same members)
+                    Ensemble ens = null;
+                    NowObs obs = null;
                     if (!in.noData) {
-                        Ensemble ens = EnsembleClient.cached(c);
+                        ens = EnsembleClient.cached(c);
                         boolean eFar = ens != null && Locator.distanceKm(ens.lat, ens.lon, lat, lon) > 3;
                         boolean eStale = ens == null || System.currentTimeMillis() - ens.fetchedAtMs > EnsembleClient.STALE_MS || eFar;
                         boolean eThrottled = System.currentTimeMillis() - prefs.lastEnsAttempt() < 5 * 60_000L;
@@ -288,27 +285,35 @@ final class Updater {
                             }
                         }
                         if (ens != null && Locator.distanceKm(ens.lat, ens.lon, lat, lon) <= 25 && ens.covers(in.now)) {
-                            wx.ens = ens;
                             info.append("rain: ensemble ").append(ens.model).append(" (").append(ens.members).append(", ")
                                     .append(Math.round((System.currentTimeMillis() - ens.fetchedAtMs) / 60000.0)).append(" min old). ");
                         } else {
+                            ens = null;
                             info.append("rain: deterministic. ");
                         }
-                        wx.nowcast = prefs.nowcast();
-                        wx.colNow = in.now;
+                        // now in Germany: the DWD radar and the nearest station (Bright Sky), refetched when 10+ min old
+                        if (Sources.inGermany(lat, lon)) {
+                            obs = NowClient.cached(c);
+                            if (NowClient.due(obs, lat, lon, System.currentTimeMillis())) obs = NowClient.fetch(c, lat, lon, obs);
+                            if (obs != null && Locator.distanceKm(obs.lat, obs.lon, lat, lon) > 1) obs = null;
+                        }
                     }
+                    // one timeline: the word, the card, the column and the strip all read it
+                    tl = Timeline.build(wx, ens, obs, in.now, prefs.nowcast());
+                    info.append(tl.notes);
+                    if (!in.noData) info.append("now: ").append(tl.nowNote).append(". ");
                     String sc = prefs.scenario();
                     if (!sc.isEmpty() && !in.noData) {
-                        wx.ens = null; // the scenario's synthetic precipitation drives the bars
-                        Scenario.apply(wx, in.now, sc);
+                        Scenario.apply(tl, in.now, sc);   // synthetic samples on top of the real timeline
                         info.append("scenario ").append(sc).append(". ");
                     }
-                    if (prefs.rainDebug() && !in.noData) { wx.colNow = in.now; logRain(wx, in.now); }   // what the column draws
+                    if (prefs.rainDebug() && !in.noData) logTimeline(tl);   // what the column draws
                     if (fp != null) in.sky = Places.handDrawn(c, fp, 0);
                     else if (forced.equals("auto")) in.sky = AutoSkylines.get(c, lat, lon, place, fetch != FETCH_NEVER); // debug: always the automatic one
                     else in.sky = Places.select(c, lat, lon, place, fetch != FETCH_NEVER);
                 }
                 in.wx = wx;
+                in.tl = tl;
                 in.lat = lat;
                 in.lon = lon;
                 in.place = place;
@@ -380,18 +385,20 @@ final class Updater {
     }
 
     /**
-     * Debug (--es raindebug true): per hour for the next 24 h, at the hour's middle: which data drives the column
-     * (det / blend / ens), the ensemble probability ("Rain %"), the rate the column draws and both sources' rates.
+     * Debug (--es raindebug true): the timeline the column draws, per hour for the next 24 h: source (radar / obs /
+     * det / ens / blend), P, R if it falls, snow share, cloud, temperature and the hour's class; "now" first.
      */
-    static void logRain(Wx w, double now) {
-        StringBuilder b = new StringBuilder("rain debug (" + (w.ens != null ? "ensemble " + w.ens.model + ", " + w.ens.members + " members" : "deterministic")
-                + (w.nowcast ? ", det first " + (int) Wx.NOWCAST_H + " h, cutoff < " + (int) Wx.ENS_MIN_PROB + " %" : ", nowcast off") + "):");
-        java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone(w.tz));
-        for (int h = 0; h < 24; h++) {
-            double hs = Math.floor(now) + h, t = Math.max(now, hs) + (h == 0 ? 0 : 0.5);
-            cal.setTimeInMillis((long) (hs * 3600000L));
-            b.append(String.format(Locale.US, " %02d:%s %.0f%% col %.2f (det %.2f, ens %.2f)", cal.get(java.util.Calendar.HOUR_OF_DAY),
-                    w.colSource(t), w.colProb(hs), w.colRate(t), w.mmh(t), w.ens != null && w.ens.covers(t) ? w.ens.rate(t) : 0.0));
+    static void logTimeline(Timeline tl) {
+        WxState ns = WxClass.classify(tl.now, WxClass.NOW);
+        StringBuilder b = new StringBuilder(String.format(Locale.US, "timeline: now %s %s P %.0f%% R %.2f snow %.2f cloud %.0f %s (%s)",
+                tl.now.src, WxState.NAMES[ns.kind], tl.now.P * 100, tl.now.R, tl.now.snow, tl.now.cloud, Renderer.deg(tl.now.temp), tl.nowNote));
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tl.wx.tz));
+        for (int i = 0; i < Math.min(24, tl.hour.length); i++) {
+            Timeline.Sample h = tl.hour[i];
+            WxState st = WxClass.classify(h, WxClass.HOUR);
+            cal.setTimeInMillis((long) (h.t * 3600000L));
+            b.append(String.format(Locale.US, " | %02d %s P%d R%.2f s%.1f c%.0f %s %s%s", cal.get(Calendar.HOUR_OF_DAY), h.src,
+                    WxClass.pct(h.P), h.R, h.snow, h.cloud, Renderer.deg(h.temp), st.chance ? "chance-" : "", WxState.NAMES[st.kind]));
         }
         Log.i(Locator.TAG, b.toString());
     }

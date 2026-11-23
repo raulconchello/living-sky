@@ -51,9 +51,9 @@ final class Prefs {
     long lastFetch() { return sp.getLong("lastFetch", 0); }
     long lastFetchAttempt() { return sp.getLong("lastFetchAttempt", 0); }
     long lastEnsAttempt() { return sp.getLong("lastEnsAttempt", 0); }
-    /** Debug: log the column's per-hour rain (probability / mean / source) on each render. */
+    /** Debug: log the timeline per hour (source, P, R, snow, cloud, class) on each render. */
     boolean rainDebug() { return sp.getBoolean("rainDebug", false); }
-    /** Debug: false = the old column precipitation (ensemble from now, no cutoff), for before/after renders. */
+    /** Debug: false = the ensemble from now on (no radar / 15-min model window). */
     boolean nowcast() { return !sp.getBoolean("nowcastOff", false); }
     /** Debug: the moon's age in days, or NaN for the real moon. */
     /** Debug: the previous (cartoon) cloud style, for before/after renders. */

@@ -13,7 +13,7 @@ import android.util.Log;
  *         scenario (""|clear|partly|overcast|rain|heavy|snow|sleet|fog|thunder), at ("HH:mm" | "" for real time),
  *         cardDx, cardDy (int px), clockDx, clockDy (float px), dump (true: write preview.png / column.png),
  *         reset (true: clear all overrides),
- *         raindebug (true: log per-hour column rain), nowcast (off: old column precipitation, for before/after),
+ *         raindebug (true: log the timeline per hour with each hour's source), nowcast (off: the ensemble from now on),
  *         moonage (days since new moon, e.g. 7.4 = first quarter; none = real), clouds (old: previous cloud style), alarm ("Mon 00:30" | "08:45" | none | real: mock the next alarm),
  *         colmode (values | bars: the column's tap mode, values held 10 min), colscroll (dp, preview dumps only),
  *         cmd (render | refresh | clearauto | remote | hosted | toggle).

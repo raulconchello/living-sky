@@ -23,14 +23,15 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 import dev.livingsky.render.BandShader;
-import dev.livingsky.render.Conditions;
 import dev.livingsky.render.Noise;
 import dev.livingsky.render.Px;
 import dev.livingsky.render.Scene;
 import dev.livingsky.render.SkyShader;
 import dev.livingsky.render.Sun;
 import dev.livingsky.render.SvgGen;
+import dev.livingsky.render.Timeline;
 import dev.livingsky.render.Wx;
+import dev.livingsky.render.WxClass;
 import dev.livingsky.render.WxState;
 
 /**
@@ -71,6 +72,7 @@ final class Renderer {
 
     static final class Input {
         Wx wx;
+        Timeline tl;           // what everything on screen reads
         double now;            // hours since epoch
         double lat, lon;
         String place;          // "Weststadt, Ulm"
@@ -150,26 +152,6 @@ final class Renderer {
         }
     }
 
-    static String iconKey(int code) { return iconKey(code, 0); }
-
-    static String iconKey(int code, double gustMax) {
-        boolean dry = code <= 3 || code == 45 || code == 48;
-        if (dry && gustMax >= 50) return "wind";
-        if (code == 0 || code == 1) return "clear";
-        if (code == 2) return "partly";
-        if (code == 3) return "overcast";
-        if (code == 45 || code == 48) return "fog";
-        if (code >= 51 && code <= 55) return "drizzle";
-        if (code == 56 || code == 57 || code == 66 || code == 67) return "sleet";
-        if (code >= 61 && code <= 65) return "rain";
-        if (code == 75 || code == 86) return "heavysnow";
-        if ((code >= 71 && code <= 77) || code == 85) return "snow";
-        if (code >= 80 && code <= 82) return "showers";
-        if ((code >= 87 && code <= 90) || code == 96 || code == 99) return "hail";
-        if (code >= 95) return "thunder";
-        return "overcast";
-    }
-
     /** Draws an icon SVG (viewBox 24) into a size x size dp box with CSS drop-shadow(0 0 3px rgba(0,0,0,.35)). */
     static void icon(Context ctx, Canvas c, String key, float x, float y, float size, float k) {
         String doc = asset(ctx, "icons/" + key + ".svg");
@@ -212,7 +194,7 @@ final class Renderer {
         Out o = new Out();
         Geo g = Geo.of(k);
         o.geo = g;
-        SkyShader.Params sp = Scene.sky(in.wx, in.now, in.lat, in.lon, in.mock, in.mode, in.sky.heroGlow);
+        SkyShader.Params sp = Scene.sky(in.tl, in.now, in.lat, in.lon, in.mock, in.mode, in.sky.heroGlow);
         in.day = !sp.night && sp.daylight;
         in.el = Sun.elevation(in.now, in.lat, in.lon);
         o.night = sp.night;
@@ -224,7 +206,7 @@ final class Renderer {
         // so dusk and dawn have no step where the night look used to switch on at -4
         double nightness = Noise.sm(-2, -6, sp.el);
         if (!in.mock && !WeatherFx.oldClouds && in.mode == Scene.MODE_AUTO && nightness > 0.004 && nightness < 0.996) {
-            SkyShader.Params sp2 = Scene.sky(in.wx, in.now, in.lat, in.lon, in.mock, in.mode, in.sky.heroGlow);
+            SkyShader.Params sp2 = Scene.sky(in.tl, in.now, in.lat, in.lon, in.mock, in.mode, in.sky.heroGlow);
             sp2.night = !sp.night;
             sp2.cover = sp.cover;
             Bitmap other = card(ctx, in, g, sp2);
@@ -237,12 +219,12 @@ final class Renderer {
         return o;
     }
 
-    /** The column band's cloud cover at now (0..1): the ensemble mean, averaged over +-60 min like BandShader.smooth. */
-    static double colCover(Wx w, double now) {
+    /** The column band's cloud cover at now (0..1): the timeline's cloud curve, averaged over +-60 min like BandShader.smooth. */
+    static double colCover(Timeline tl, double now) {
         double s = 0, ws = 0;
         for (double off = -1; off <= 1.0001; off += 0.25) {
             double wt = 1 - Math.abs(off) / 1.25;
-            s += wt * w.colCloud(now + off) / 100;
+            s += wt * tl.cloudAt(now + off) / 100;
             ws += wt;
         }
         return s / ws;
@@ -262,8 +244,8 @@ final class Renderer {
         Canvas c = new Canvas(bm);
 
         // 2. skyline SVG, then the near-bank ground band over it, with the weather layered around them
-        WeatherFx fx = in.mock ? null : new WeatherFx(WxState.of(in.wx, in.now), sp, k, W, H, in.now, in.lat, in.lon);
-        if (fx != null) { fx.colCover = colCover(in.wx, in.now); fx.sky(c, bm); }
+        WeatherFx fx = in.mock ? null : new WeatherFx(Scene.state(in.tl), sp, k, W, H, in.now, in.lat, in.lon);
+        if (fx != null) { fx.colCover = colCover(in.tl, in.now); fx.sky(c, bm); }
         Bitmap sk = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
         svg(new Canvas(sk), sp.night ? in.sky.night : in.sky.day, k);
         boolean graded = !sp.night && sp.daylight;
@@ -331,7 +313,8 @@ final class Renderer {
 
     static void text(Context ctx, Canvas c, Input in, Geo g) {
         float k = g.k;
-        Wx w = in.wx;
+        Timeline tl = in.tl;
+        Timeline.Sample now = tl.now;
         TextKit.Batch b = new TextKit.Batch(g.cardW, g.cardH);
 
         // --- location line (17, 11): arrow, "Sublocality, City" (12 dp, 500), " · Sun, 22 Nov" (400, 85 %); opacity .95
@@ -349,14 +332,13 @@ final class Renderer {
             df.setTimeZone(in.tz);
             cands = new String[]{df.format(new Date((long) (in.now * 3600000L)))};
         } else {
-            WxState st = WxState.of(w, in.now);
-            String[] cw = Conditions.of(Conditions.effectiveCode(w.code, st), in.el < -0.83);
-            boolean windy = st.windy;
-            boolean calm = st.kind == WxState.CLEAR || st.kind == WxState.PARTLY || st.kind == WxState.OVERCAST;
-            String full = windy ? (calm && w.code <= 3 ? "Windy" : cw[0] + ", windy") : cw[0];
-            String shortW = windy ? (calm && w.code <= 3 ? "Windy" : cw[1] + ", windy") : cw[1];
+            // the same state the card's sky shows (one classifier, the timeline's "now")
+            WxState st = Scene.state(tl);
+            String[] cw = WxClass.word(st, in.el < -0.83);
+            st.windy = false;
+            String[] plain = WxClass.word(st, in.el < -0.83);
             // fit at x <= 260 dp: full word, short word, without ", windy", then ellipsize the location
-            cands = new String[]{full, shortW, windy && !(calm && w.code <= 3) ? cw[1] : shortW};
+            cands = new String[]{cw[0], cw[1], cw[1].equals("Windy") ? cw[1] : plain[1]};
         }
         String date = "\u00a0·\u00a0" + cands[0];
         float mainW = TextKit.width(pMain, place, ls);
@@ -385,7 +367,7 @@ final class Renderer {
         ap.setColor(white(0.95f));
 
         // --- temperature (14, 78.9): 33.3 dp, 300, letter-spacing -1, whole degrees
-        String tempS = in.noData ? "–°" : deg(w.temp);
+        String tempS = in.noData ? "–°" : deg(now.temp);
         Paint pT = TextKit.paint(ctx, 300, 33.3f * k, Color.WHITE, FEAT);
         float tls = -1 * k;
         b.text(pT, tempS, 14 * k, baseline(78.9f, 33.3f, 33.3f) * k, tls);
@@ -395,7 +377,7 @@ final class Renderer {
 
         // --- "Feels like 1°" (13 dp, 500) at y 80
         Paint pC = TextKit.paint(ctx, 500, 13 * k, Color.WHITE, FEAT);
-        b.text(pC, in.noData ? "Waiting for weather…" : "Feels like " + deg(w.feels), right, baseline(80, 13) * k, 0);
+        b.text(pC, in.noData ? "Waiting for weather…" : "Feels like " + deg(now.feels), right, baseline(80, 13) * k, 0);
 
         // --- "UV 1   RH 93%" at y 97.5 (11.5 dp, labels #dbe9ff, values 600 white), line-height 14
         if (!in.noData) {
@@ -404,16 +386,17 @@ final class Renderer {
             Paint pV = TextKit.paint(ctx, 600, 11.5f * k, Color.WHITE, FEAT);
             float sx = right;
             sx = b.text(pL, "UV ", sx, sb, 0);
-            sx = b.text(pV, String.valueOf(Math.max(0, Math.round(w.uv))), sx, sb, 0);
+            sx = b.text(pV, String.valueOf(Math.max(0, Math.round(now.uv))), sx, sb, 0);
             sx += 10 * k;
             sx = b.text(pL, "RH ", sx, sb, 0);
-            b.text(pV, Math.round(w.rh) + "%", sx, sb, 0);
+            b.text(pV, Math.round(Math.max(0, now.rh)) + "%", sx, sb, 0);
         }
 
-        // --- day strip (15, 150), width 246: the next 4 days
+        // --- day strip (15, 150), width 246: the next 4 days, aggregated from the column's own hourly samples
         List<float[]> iconPos = new ArrayList<>();
         List<String> iconKeys = new ArrayList<>();
         if (!in.noData) {
+            Wx w = tl.wx;
             int d0 = w.dayIndex(in.now);
             SimpleDateFormat dn = new SimpleDateFormat("EEE", Locale.ENGLISH);
             dn.setTimeZone(in.tz);
@@ -424,13 +407,15 @@ final class Renderer {
             List<Object[]> days = new ArrayList<>();
             float total = 0;
             for (int i = d0 + 1; i <= d0 + 4 && i >= 1 && i < w.dT.length; i++) {
+                WxClass.Day day = tl.dayAt(i);
+                if (day == null) continue;
                 String name = dn.format(new Date((long) ((w.dT[i] + 12) * 3600000L)));
-                String hi = deg(w.dMax[i]), lo = deg(w.dMin[i]);
+                String hi = deg(day.max), lo = deg(day.min);
                 float nameW = TextKit.width(pD, name, 0);
                 float hiW = numW(pH, hi, sls, k), loW = numW(pLo, lo, sls, k);
                 float dayW = Math.max(nameW + 3 * k + 19.5f * k, hiW + 2.5f * k + loW);
                 total += dayW;
-                days.add(new Object[]{name, hi, lo, nameW, hiW, dayW, iconKey(w.dCode[i], i < w.dGust.length ? w.dGust[i] : 0)});
+                days.add(new Object[]{name, hi, lo, nameW, hiW, dayW, day.icon});
             }
             int n = days.size();
             float gap = n > 1 ? Math.max(0, (246 * k - total) / (n - 1)) : 0;
@@ -473,19 +458,19 @@ final class Renderer {
         float k = g.k;
         float CW = COL_X1 - COL_X0;
         double now = in.now;
-        in.wx.colNow = now;   // the deterministic run rules the column's precipitation for the next 2 h
+        Timeline tl = in.tl;
         float CHdp = TOTAL_H * PXH;
         int Wc = (int) Math.round(CW * k), Hc = (int) Math.round(CHdp * k);
         // sky band at 0.6 x resolution, upscaled, grain 6
         // the sky band is the expensive part: cached, so a tap (bars <-> values) only redraws the overlay
-        String bandKey = in.wx.fetchedAtMs + "|" + in.wx.code + "|" + in.wx.cloud + "|" + Math.round(now * 3600) + "|" + in.lat + "|" + in.lon + "|" + Wc + "x" + Hc + "|" + in.mock + "|" + in.wx.nowcast;
+        String bandKey = tl.key + "|" + Math.round(now * 3600) + "|" + in.lat + "|" + in.lon + "|" + Wc + "x" + Hc + "|" + in.mock;
         int[] full;
         synchronized (Renderer.class) {
             full = bandKey.equals(bandCacheKey) ? bandCache : null;
         }
         if (full == null) {
             int pw = (int) Math.round(CW * k * 0.6), ph = (int) Math.round(CHdp * k * 0.6);
-            BandShader bs = new BandShader(in.wx, now, PXH, in.lat, in.lon, 20261121);
+            BandShader bs = new BandShader(tl, now, PXH, in.lat, in.lon, 20261121);
             bs.daylight = !in.mock;
             int[] lo = bs.render(pw, ph, k * 0.6);
             full = Px.upscale(lo, pw, ph, Wc, Hc);
@@ -498,23 +483,24 @@ final class Renderer {
         Bitmap bm = Bitmap.createBitmap(Wc, Hc, Bitmap.Config.ARGB_8888);
         bm.setPixels(full, 0, Wc, 0, 0, Wc, Hc);
         Canvas c = new Canvas(bm);
-        Wx w = in.wx;
         double T1 = now + TOTAL_H;
 
-        // 15-min rain bars: x 27, 26 dp per mm/h, capped; a hairline of air between slots
+        // 15-min bars: x 27, length = the rate if it falls (26 dp per mm/h, capped), opacity from the probability
+        // (faint "possible" from 20 %, solid "likely"); a hairline of air between slots
         float bx = 27, bmax = CW - bx - 16 - 8;
         Paint fp = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
         wp.setColor(0xfff2f5fb);
         for (double s0 = Math.floor(now * 4) / 4; s0 < T1 && !values; s0 += 0.25) {
-            double v = w.colRate(s0 + 0.125);          // deterministic for 2 h, then the ensemble mean (cutoff < 10 %)
-            int pt = w.colType(s0 + 0.125);
-            if (v < 0.05 || pt == Wx.DRY) continue;
+            Timeline.Sample sm = tl.at(s0 + 0.125);
+            if (!WxClass.bar(sm)) continue;
+            double v = sm.R;
+            int pt = WxClass.ptype(sm);
             double ya = (Math.max(s0, now) - now) * PXH, yb = (s0 + 0.25 - now) * PXH;
             float bw = (float) Math.min(bmax, v * 26);
             RectF r = new RectF(bx * k, (float) (ya + 0.4) * k, (bx + bw) * k, (float) (ya + 0.4 + Math.max(0.6, yb - ya - 0.8)) * k);
-            int col = pt == Wx.SNOW ? 0xffeef2fa : pt == Wx.SLEET ? 0xff8cc0ff : v < 1 ? 0xff8cc0ff : v < 4 ? 0xff4d97ff : 0xff2b63e8;
-            int save = c.saveLayerAlpha(r.left - 2, r.top - 2, r.right + 2, r.bottom + 2, Math.round(0.95f * 255));
+            int col = WxClass.barColor(pt, v);
+            int save = c.saveLayerAlpha(r.left - 2, r.top - 2, r.right + 2, r.bottom + 2, (int) Math.round(0.95 * WxClass.presence(sm.P) * 255));
             fp.setColor(col);
             c.drawRoundRect(r, 1.3f * k, 1.3f * k, fp);
             if (pt == Wx.SLEET) { // hatched #8cc0ff / #f2f5fb: 3.2 dp pattern rotated 40 deg (userSpaceOnUse)
@@ -588,11 +574,12 @@ final class Renderer {
                     b.text(pHour, String.format(Locale.US, "%02d", cal.get(Calendar.HOUR_OF_DAY)), 7 * k, lb, 0);
                 }
                 float rx = (CW - 7) * k;
-                if (w.hasHourly() && (!values || VALUES_KEEP_TEMP)) {
-                    String t = deg(w.hourly(w.hTemp, h));
+                Timeline.Sample hs = tl.hourAt(h);   // the strip's max / min are these same numbers
+                if (hs != null && (!values || VALUES_KEEP_TEMP)) {
+                    String t = deg(hs.temp);
                     b.text(pTemp, t, rx - TextKit.width(pTemp, t, 0), lb, 0);
                 }
-                if (values) valuesRow(b, w, h, lb, k, pVR, pVRd, pVH, pVU, pVUd);
+                if (values && hs != null) valuesRow(b, hs, lb, k, pVR, pVRd, pVH, pVU, pVUd);
             }
             cal.add(Calendar.HOUR_OF_DAY, 1);
         }
@@ -646,17 +633,15 @@ final class Renderer {
         return u < 6 ? 0xffffd54a : u < 8 ? 0xffff9b45 : u < 11 ? 0xffff6257 : 0xffc78bff; // WHO bands
     }
 
-    static void valuesRow(TextKit.Batch b, Wx w, double h, float lb, float k, Paint pr, Paint prDim, Paint ph, Paint pu, Paint puDim) {
-        int i = w.hourIndex(h + 0.01);
-        if (i < 0) return;
-        int pop = (int) (Math.round(w.colProb(h) / 5.0) * 5); // same members as the bars
+    static void valuesRow(TextKit.Batch b, Timeline.Sample h, float lb, float k, Paint pr, Paint prDim, Paint ph, Paint pu, Paint puDim) {
+        int pop = WxClass.pct(h.P);   // the hour's highest slot P: always matches its bars (dimmed = no bar)
         String r = String.valueOf(pop);
-        Paint rp = pop < 10 ? prDim : pr;
+        Paint rp = h.P < WxClass.P_POSSIBLE ? prDim : pr;
         b.text(rp, r, VX_RAIN * k - TextKit.width(rp, r, 0), lb, 0);
-        double rh = w.rhAt(h + 0.01);
+        double rh = h.rh;
         String hs = rh < 0 ? "–" : String.valueOf(Math.round(rh));
         b.text(ph, hs, VX_RH * k - TextKit.width(ph, hs, 0), lb, 0);
-        double uvv = i < w.hUV.length ? w.hUV[i] : 0;
+        double uvv = h.uv;
         int uv = (int) Math.round(uvv);
         String us = String.valueOf(Math.max(0, uv));
         Paint up = uv <= 0 ? puDim : pu;

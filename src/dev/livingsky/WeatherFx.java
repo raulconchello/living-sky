@@ -178,7 +178,7 @@ final class WeatherFx {
      * the sun by day (golden / pink when low), the afterglow at dusk, dark bodies with moonlit rims and a faint city
      * glow at night. One field, lit continuously by the sun's elevation, so dawn and dusk have no seam.
      */
-    /** The column's cloud cover for this hour (0..1, ensemble mean, smoothed as the band), or NaN: the shader's cover. */
+    /** The column's cloud cover for this hour (0..1, the timeline's cloud curve, smoothed as the band), or NaN: the shader's cover. */
     double colCover = Double.NaN;
 
     private void cloudLayer(Canvas c, boolean showers, boolean moonUp) {

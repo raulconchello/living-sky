@@ -1,84 +1,96 @@
 package dev.livingsky;
 
-import dev.livingsky.render.Wx;
+import dev.livingsky.render.Timeline;
 
-/** Debug-only synthetic weather on top of the real forecast, to check every sky type on the phone. */
+/**
+ * Debug-only synthetic weather, written as timeline samples on top of the real one (now, the next 3 h of 15-min
+ * slots, the sky and flags of the next 8 h), so the word, the card, the column and the strip all show it.
+ */
 public final class Scenario {
     private Scenario() {}
 
     static final String[] NAMES = {"", "clear", "partly", "overcast", "fog", "drizzle", "rain", "heavy", "showers", "thunder",
             "hail", "thunderhail", "sleet", "snow", "heavysnow", "wind", "rainwind", "mixed"};
 
-    public static void apply(Wx w, double now, String s) {
-        if (s.equals("mixed")) { mixed(w, now); return; }
-        int code;
-        double cloud, rain = 0, snow = 0, gust = 18, wind = 9;
+    public static void apply(Timeline tl, double now, String s) {
+        tl.key += "|" + s;
+        if (s.equals("mixed")) { mixed(tl, now); return; }
+        double cloud, rain = 0, snow = 0, gust = 18;   // rain / snow: mm per 15 min
+        boolean fog = false, thunder = false, hail = false, showers = false;
         switch (s) {
-            case "clear": code = 0; cloud = 5; break;
-            case "partly": code = 2; cloud = 50; break;
-            case "overcast": code = 3; cloud = 100; break;
-            case "fog": code = 45; cloud = 100; wind = 3; gust = 6; break;
-            case "drizzle": code = 53; cloud = 100; rain = 0.07; break;
-            case "rain": code = 63; cloud = 100; rain = 0.5; break;
-            case "heavy": code = 65; cloud = 100; rain = 1.6; gust = 35; break;
-            case "showers": code = 81; cloud = 75; rain = 0.6; gust = 30; break;
-            case "thunder": code = 95; cloud = 100; rain = 1.2; gust = 45; break;
-            case "hail": code = 90; cloud = 100; rain = 0.8; gust = 40; break;
-            case "thunderhail": code = 99; cloud = 100; rain = 1.0; gust = 55; wind = 30; break;
-            case "sleet": code = 67; cloud = 100; rain = 0.2; snow = 0.12; break;
-            case "snow": code = 73; cloud = 100; snow = 0.3; break;
-            case "heavysnow": code = 75; cloud = 100; snow = 0.9; gust = 30; break;
-            case "wind": code = 3; cloud = 70; wind = 48; gust = 78; break;
-            case "rainwind": code = 63; cloud = 100; rain = 0.6; wind = 52; gust = 82; break;
+            case "clear": cloud = 5; break;
+            case "partly": cloud = 50; break;
+            case "overcast": cloud = 100; break;
+            case "fog": cloud = 100; fog = true; gust = 6; break;
+            case "drizzle": cloud = 100; rain = 0.07; break;
+            case "rain": cloud = 100; rain = 0.5; break;
+            case "heavy": cloud = 100; rain = 1.6; gust = 35; break;
+            case "showers": cloud = 75; rain = 0.6; gust = 30; showers = true; break;
+            case "thunder": cloud = 100; rain = 1.2; gust = 45; thunder = true; break;
+            case "hail": cloud = 100; rain = 0.8; gust = 40; hail = true; break;
+            case "thunderhail": cloud = 100; rain = 1.0; gust = 55; thunder = true; hail = true; break;
+            case "sleet": cloud = 100; rain = 0.2; snow = 0.12; break;
+            case "snow": cloud = 100; snow = 0.3; break;
+            case "heavysnow": cloud = 100; snow = 0.9; gust = 30; break;
+            case "wind": cloud = 70; gust = 78; break;
+            case "rainwind": cloud = 100; rain = 0.6; gust = 82; break;
             default: return;
         }
-        // debug only: forecasts cached before RH was requested have no hourly RH; use the current value
-        if (w.hRH.length != w.hT.length) {
-            w.hRH = new double[w.hT.length];
-            java.util.Arrays.fill(w.hRH, w.rh > 0 ? w.rh : 85);
+        double share = rain + snow > 0 ? snow / (rain + snow) : 0;
+        set(tl.now, cloud, gust, (rain + snow) * 4 * 0.6, share, fog, thunder, hail, showers);
+        for (Timeline.Sample sl : tl.slot) {
+            double d = sl.t - now;
+            if (d >= 3) break;
+            double f = 0.6 + 0.4 * Math.sin(d * 2.1);
+            set(sl, cloud, gust, (rain + snow) * 4 * f, share, fog, thunder, hail, showers);
         }
-        w.code = code;
-        w.cloud = cloud;
-        w.wind = wind;
-        w.gust = gust;
-        for (int i = 0; i < w.hT.length; i++) {
-            if (w.hT[i] < now - 1 || w.hT[i] > now + 8) continue;
-            w.hCode[i] = code;
-            w.hCloud[i] = cloud;
-            w.hPP[i] = rain + snow > 0 ? 80 : 0;
-            if (i < w.hGust.length) w.hGust[i] = gust;
+        for (Timeline.Sample h : tl.hour) {
+            double d = h.t - now;
+            if (d < -1 || d > 8) continue;
+            boolean wet = d < 3 && rain + snow > 0;
+            h.cloud = cloud;
+            h.gust = gust;
+            h.fog = fog;
+            h.thunder = thunder && wet;
+            h.hail = hail && wet;
+            h.showers = showers && wet;
+            h.freezing = false;
         }
-        for (int i = 0; i < w.mT.length; i++) {
-            if (w.mT[i] < now - 0.5 || w.mT[i] > now + 3) continue;
-            double f = 0.6 + 0.4 * Math.sin((w.mT[i] - now) * 2.1);
-            w.mRain[i] = rain * f;
-            w.mSnow[i] = snow * f;
-            w.mPrecip[i] = (rain + snow) * f;
-            w.mCode[i] = code;
-        }
+        tl.aggregate();
+    }
+
+    private static void set(Timeline.Sample x, double cloud, double gust, double R, double share,
+                            boolean fog, boolean thunder, boolean hail, boolean showers) {
+        boolean wet = R > 0;
+        x.cloud = cloud;
+        x.gust = gust;
+        x.P = wet ? 1 : 0;
+        x.R = R;
+        x.snow = share;
+        x.fog = fog && !wet;
+        x.thunder = thunder && wet;
+        x.hail = hail && wet;
+        x.showers = showers && wet;
+        x.freezing = false;
+        x.src = "scenario";
     }
 
     /** Debug: transitions in one column: clear (2 h) -> rain (2.5 h) -> snow (2.5 h) -> overcast, dry. */
-    static void mixed(Wx w, double now) {
-        if (w.hRH.length != w.hT.length) { w.hRH = new double[w.hT.length]; java.util.Arrays.fill(w.hRH, 85); }
-        w.code = 0; w.cloud = 10;
-        for (int i = 0; i < w.hT.length; i++) {
-            double d = w.hT[i] - now;
-            if (d < -1 || d > 10) continue;
-            int code = d < 2 ? 0 : d < 4.5 ? 63 : d < 7 ? 73 : 3;
-            w.hCode[i] = code;
-            w.hCloud[i] = code == 0 ? 10 : 100;
-            w.hPP[i] = code == 63 || code == 73 ? 85 : 5;
-        }
-        for (int i = 0; i < w.mT.length; i++) {
-            double d = w.mT[i] - now;
-            if (d < -0.5 || d > 10) continue;
+    static void mixed(Timeline tl, double now) {
+        set(tl.now, 10, 15, 0, 0, false, false, false, false);
+        for (Timeline.Sample sl : tl.slot) {
+            double d = sl.t - now;
+            if (d >= 10) break;
             boolean rain = d >= 2 && d < 4.5, snow = d >= 4.5 && d < 7;
             double f = 0.7 + 0.3 * Math.sin(d * 2.3);
-            w.mRain[i] = rain ? 0.35 * f : 0;
-            w.mSnow[i] = snow ? 0.28 * f : 0;
-            w.mPrecip[i] = rain ? 0.35 * f : snow ? 0.3 * f : 0;
-            w.mCode[i] = rain ? 63 : snow ? 73 : d < 2 ? 0 : 3;
+            set(sl, d < 2 ? 10 : 100, 15, rain ? 1.4 * f : snow ? 1.2 * f : 0, snow ? 1 : 0, false, false, false, false);
         }
+        for (Timeline.Sample h : tl.hour) {
+            double d = h.t - now;
+            if (d < -1 || d > 10) continue;
+            h.cloud = d < 2 ? 10 : 100;
+            h.fog = false; h.thunder = false; h.hail = false; h.showers = false; h.freezing = false;
+        }
+        tl.aggregate();
     }
 }
