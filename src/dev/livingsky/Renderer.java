@@ -218,15 +218,41 @@ final class Renderer {
         o.night = sp.night;
         o.day = in.day;
         o.el = sp.el;
+        if (!in.mock && !WeatherFx.oldClouds && sp.state == WxState.SHOWERS) sp.cover = Math.max(sp.cover, 0.84); // grey wet sky
         o.card = card(ctx, in, g, sp);
+        // twilight: the day and night looks (sky, skyline, lights, stars) cross-fade between sun -2 and -6 deg,
+        // so dusk and dawn have no step where the night look used to switch on at -4
+        double nightness = Noise.sm(-2, -6, sp.el);
+        if (!in.mock && !WeatherFx.oldClouds && in.mode == Scene.MODE_AUTO && nightness > 0.004 && nightness < 0.996) {
+            SkyShader.Params sp2 = Scene.sky(in.wx, in.now, in.lat, in.lon, in.mock, in.mode, in.sky.heroGlow);
+            sp2.night = !sp.night;
+            sp2.cover = sp.cover;
+            Bitmap other = card(ctx, in, g, sp2);
+            Paint bp = new Paint(Paint.FILTER_BITMAP_FLAG);
+            bp.setAlpha((int) Math.round(255 * (sp.night ? 1 - nightness : nightness)));
+            new Canvas(o.card).drawBitmap(other, 0, 0, bp);
+            other.recycle();
+        }
         column(ctx, in, g, o);
         return o;
+    }
+
+    /** The column band's cloud cover at now (0..1): the ensemble mean, averaged over +-60 min like BandShader.smooth. */
+    static double colCover(Wx w, double now) {
+        double s = 0, ws = 0;
+        for (double off = -1; off <= 1.0001; off += 0.25) {
+            double wt = 1 - Math.abs(off) / 1.25;
+            s += wt * w.colCloud(now + off) / 100;
+            ws += wt;
+        }
+        return s / ws;
     }
 
     static Bitmap card(Context ctx, Input in, Geo g, SkyShader.Params sp) {
         float k = g.k;
         int W = g.cardW, H = g.cardH;
         // 1. sky: painted at half resolution, upscaled (bicubic) and grained, like sky8.js paint(sky, W, H, 0.5, ..., 7)
+        sp.layerClouds = !in.mock && WeatherFx.layerClouds(sp.state, 1);
         int pw = (int) Math.round(CARD_W * k * 0.5), ph = (int) Math.round(CARD_H * k * 0.5);
         int[] lo = new SkyShader(sp).render(pw, ph, k * 0.5);
         int[] full = Px.upscale(lo, pw, ph, W, H);
@@ -237,7 +263,7 @@ final class Renderer {
 
         // 2. skyline SVG, then the near-bank ground band over it, with the weather layered around them
         WeatherFx fx = in.mock ? null : new WeatherFx(WxState.of(in.wx, in.now), sp, k, W, H, in.now, in.lat, in.lon);
-        if (fx != null) fx.sky(c, bm);
+        if (fx != null) { fx.colCover = colCover(in.wx, in.now); fx.sky(c, bm); }
         Bitmap sk = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
         svg(new Canvas(sk), sp.night ? in.sky.night : in.sky.day, k);
         boolean graded = !sp.night && sp.daylight;

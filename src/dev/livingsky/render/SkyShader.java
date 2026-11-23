@@ -26,6 +26,7 @@ public final class SkyShader {
         public double[] tint = null;             // {r, g, b, amount}: thunder purple-grey, hail green-grey, snow white-grey
         public double stretch = 1;               // < 1 stretches the clouds horizontally (strong wind)
         public int state = WxState.OVERCAST;
+        public boolean layerClouds;              // broken cloud comes from CloudLayer (WeatherFx): no shader puffs
         public boolean daylight = true;          // proposal B "Vívido" by day (false: the original sky8/sky9 sketch)
         public long seed = 20261121;
     }
@@ -198,7 +199,8 @@ public final class SkyShader {
             if (P.daylight) skyOvercastDL(x, y, col); else skyOvercast(x, y, col);
             teff = dT;
         } else {
-            if (P.daylight) skyClearDL(x, y, col, Math.min(0.85, cov)); else skyClear(x, y, col, Math.min(0.85, cov));
+            double cl = P.layerClouds ? 0 : Math.min(0.85, cov);   // broken cloud drawn by CloudLayer on top
+            if (P.daylight) skyClearDL(x, y, col, cl); else skyClear(x, y, col, cl);
             teff = clearMask;
             if (w > 0) {
                 if (P.daylight) skyOvercastDL(x, y, colB); else skyOvercast(x, y, colB);
@@ -242,7 +244,7 @@ public final class SkyShader {
         mixTo(col, 150, 106, 82, hz * 0.7);
         double teff = T;
         if (cov < 0.999) {
-            double m = cloudMask();
+            double m = P.layerClouds ? 0 : cloudMask();   // broken cloud drawn by CloudLayer on top
             double gg = Math.pow(g, 1.5);
             double cr = 8 + (34 - 8) * gg, cg = 11 + (32 - 11) * gg, cb = 24 + (50 - 24) * gg;
             double ug = sm(0.72, 1.0, g) * 0.75; // light dome over the town

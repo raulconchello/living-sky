@@ -320,6 +320,7 @@ final class Updater {
                 Renderer.Out o;
                 synchronized (RENDER) {
                 dev.livingsky.render.Moon.ageOverride = prefs.moonAge();   // debug: a forced moon phase
+                WeatherFx.oldClouds = prefs.cloudsOld();                     // debug: the previous cloud style
                 o = Renderer.render(c, in, k);
                 if (in.mock || prefs.atMinutes() >= 0) {
                     SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);

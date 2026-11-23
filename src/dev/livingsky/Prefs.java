@@ -56,6 +56,8 @@ final class Prefs {
     /** Debug: false = the old column precipitation (ensemble from now, no cutoff), for before/after renders. */
     boolean nowcast() { return !sp.getBoolean("nowcastOff", false); }
     /** Debug: the moon's age in days, or NaN for the real moon. */
+    /** Debug: the previous (cartoon) cloud style, for before/after renders. */
+    boolean cloudsOld() { return sp.getBoolean("cloudsOld", false); }
     double moonAge() { return sp.contains("moonAge") ? sp.getFloat("moonAge", 0) : Double.NaN; }
     String lastError() { return sp.getString("lastError", ""); }
     long lastErrorAt() { return sp.getLong("lastErrorAt", 0); }

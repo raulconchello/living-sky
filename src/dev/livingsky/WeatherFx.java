@@ -18,14 +18,14 @@ import java.util.List;
 import java.util.Random;
 
 import dev.livingsky.render.Moon;
-import dev.livingsky.render.NightClouds;
+import dev.livingsky.render.CloudLayer;
 import dev.livingsky.render.SkyShader;
 import dev.livingsky.render.WxState;
 
 /**
  * The foreground weather pass: what makes each state readable at a glance on the home screen. The sky shader alone
  * paints behind the skyline, so here the weather is layered around it, stylised and calm:
- *   sky()          behind the skyline: sun bloom, crisp stars, the moon, cumulus (night: NightClouds), the bolt and its flash;
+ *   sky()          behind the skyline: sun bloom, crisp stars, the moon, broken cloud (CloudLayer), the bolt and its flash;
  *   afterSkyline() over the skyline: fog bank + mist + light halos, rain curtains, rim light, snow on the roofs;
  *   afterGround()  over everything: near fog, wet sheen, snow / hail on the ground, rain, snow, hail, wind.
  * All coordinates in dp (card space), drawn in px (x k). Deterministic per state and day.
@@ -77,10 +77,8 @@ final class WeatherFx {
         if (!night && sunUp && (kind == WxState.CLEAR || kind == WxState.PARTLY)) sunBloom(c);
         if (night && sp.cover < 0.9 && !st.precip() && kind != WxState.FOG) stars(c, skyPx);
         if (night && sp.cover < 0.8 && !st.precip() && kind != WxState.FOG) moon(c, skyPx);
-        if (kind == WxState.PARTLY || kind == WxState.SHOWERS) {
-            if (night) nightClouds(c, kind == WxState.SHOWERS, night && sp.cover < 0.8 && !st.precip());
-            else cumulus(c, kind == WxState.SHOWERS);
-        }
+        if (layerClouds(st.kind, sp.cover)) cloudLayer(c, kind == WxState.SHOWERS, night && sp.cover < 0.8 && !st.precip());
+        else if (kind == WxState.PARTLY || kind == WxState.SHOWERS) cumulus(c, kind == WxState.SHOWERS); // old style (debug)
         if (st.lightning) bolt(c);
     }
 
@@ -167,37 +165,52 @@ final class WeatherFx {
         c.restore();
     }
 
+    /** Debug (--es clouds old): the previous cartoon cumulus, the sky shader's own puffs and the -4 deg day/night step. */
+    static volatile boolean oldClouds;
+
+    /** Broken cloud drawn by {@link CloudLayer} (fair-weather wisps, partly cloudy, showers); the decks stay in the shader. */
+    static boolean layerClouds(int kind, double cover) {
+        return !oldClouds && (kind == WxState.PARTLY || kind == WxState.SHOWERS || (kind == WxState.CLEAR && cover > 0.08));
+    }
+
     /**
-     * Broken cloud at night ({@link NightClouds}): soft fbm clouds in perspective, dark bodies, see-through thin parts,
-     * silver rims and a glow toward the moon, a faint warm city glow on the bases, the afterglow in late twilight.
+     * Broken cloud at every hour ({@link CloudLayer}): soft fbm clouds in perspective, see-through thin parts, lit by
+     * the sun by day (golden / pink when low), the afterglow at dusk, dark bodies with moonlit rims and a faint city
+     * glow at night. One field, lit continuously by the sun's elevation, so dawn and dusk have no seam.
      */
-    private void nightClouds(Canvas c, boolean showers, boolean moonUp) {
-        NightClouds nc = new NightClouds(seed ^ 0xC10D5L);
-        nc.cover = sp.cover;
-        nc.showers = showers;
-        nc.windy = st.windy;
-        nc.HY = sp.HY;
-        nc.focal = sp.focal;
+    /** The column's cloud cover for this hour (0..1, ensemble mean, smoothed as the band), or NaN: the shader's cover. */
+    double colCover = Double.NaN;
+
+    private void cloudLayer(Canvas c, boolean showers, boolean moonUp) {
+        CloudLayer cl = new CloudLayer(seed ^ 0xC10D5L);
+        // the same amount of cloud as the column next to it, kept within what the state means
+        double cc = Double.isNaN(colCover) ? sp.cover : colCover;
+        if (st.kind == WxState.CLEAR) cc = Math.min(cc, Math.max(sp.cover, 0.25));
+        else if (showers) cc = Math.max(0.62, Math.min(0.9, cc));
+        else cc = Math.max(0.3, Math.min(0.86, cc));
+        cl.cover = cc;
+        cl.showers = showers;
+        cl.windy = st.windy;
+        cl.HY = sp.HY;
+        cl.focal = sp.focal;
+        cl.el = sp.el;
+        cl.sunX = sp.sunX;
+        cl.sunY = sp.sunY;
         double[] m = moonUp ? moonPlace() : null;
-        if (m != null) { nc.moonX = m[0]; nc.moonY = m[1]; nc.moonLight = m[2]; }
-        nc.twilight = Math.max(0, Math.min(1, (sp.el + 13) / 9.0));
-        nc.twilight = nc.twilight * nc.twilight * (3 - 2 * nc.twilight);
-        nc.sunX = sp.sunX;
+        if (m != null) { cl.moonX = m[0]; cl.moonY = m[1]; cl.moonLight = m[2]; }
         double s = k * 0.6;
         int pw = (int) Math.ceil(272 * s), ph = (int) Math.ceil((sp.HY + 2) * s);
-        nc.render(pw, ph, s);
+        cl.render(pw, ph, s);
         RectF dst = new RectF(0, 0, (float) (pw / s * k), (float) (ph / s * k));
         Paint fp = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
-        Bitmap lb = Bitmap.createBitmap(nc.layer, pw, ph, Bitmap.Config.ARGB_8888);
+        Bitmap lb = Bitmap.createBitmap(cl.layer, pw, ph, Bitmap.Config.ARGB_8888);
         c.drawBitmap(lb, null, dst, fp);
         lb.recycle();
-        if (m != null) {
-            Bitmap gb = Bitmap.createBitmap(nc.glow, pw, ph, Bitmap.Config.ARGB_8888);
-            Paint sp2 = new Paint(Paint.FILTER_BITMAP_FLAG);
-            sp2.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
-            c.drawBitmap(gb, null, dst, sp2);
-            gb.recycle();
-        }
+        Bitmap gb = Bitmap.createBitmap(cl.glow, pw, ph, Bitmap.Config.ARGB_8888);
+        Paint sp2 = new Paint(Paint.FILTER_BITMAP_FLAG);
+        sp2.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+        c.drawBitmap(gb, null, dst, sp2);
+        gb.recycle();
     }
 
     /** Fair-weather cumulus: separate puffy clouds with flat bases, smaller toward the horizon. */
