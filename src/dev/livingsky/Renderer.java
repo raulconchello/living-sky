@@ -438,6 +438,23 @@ final class Renderer {
         for (int i = 0; i < iconPos.size(); i++) icon(ctx, c, iconKeys.get(i), iconPos.get(i)[0], iconPos.get(i)[1], 19.5f, k);
     }
 
+    /**
+     * A column bar's rate at t. In the 15-min range it is the slot's own R. Beyond it R is interpolated between hour
+     * centres (a neighbour hour without a bar counts as 0), so the bars keep a smooth envelope instead of hourly steps.
+     * Whether a bar is drawn, and whether it is solid, still comes from the hour itself (the strip invariant).
+     */
+    static double barRate(Timeline tl, double t, Timeline.Sample sm) {
+        if (tl.slot.length > 0 && t >= tl.slot0 && Math.floor((t - tl.slot0) * 4 + 1e-6) < tl.slot.length) return sm.R;
+        Timeline.Sample[] H = tl.hour;
+        if (H.length == 0) return sm.R;
+        int i = (int) Math.floor(t - H[0].t);
+        if (i < 0 || i >= H.length) return sm.R;
+        double f = t - (H[i].t + 0.5);
+        int j = f < 0 ? i - 1 : i + 1;
+        double rj = j >= 0 && j < H.length && WxClass.bar(H[j]) ? H[j].R : 0;
+        return sm.R + (rj - sm.R) * Math.min(0.5, Math.abs(f));
+    }
+
     /** Width of a strip number; a leading minus is a span with margin 0 -1px 0 -.3px. */
     static float numW(Paint p, String s, float ls, float k) {
         if (s.startsWith(MINUS)) return TextKit.width(p, s, ls) - 1.3f * k;
@@ -485,22 +502,27 @@ final class Renderer {
         Canvas c = new Canvas(bm);
         double T1 = now + TOTAL_H;
 
-        // 15-min bars: x 27, length = the rate if it falls (26 dp per mm/h, capped), opacity from the probability
-        // (faint "possible" from 20 %, solid "likely"); a hairline of air between slots
+        // 15-min bars: x 27, length = the rate if it falls (26 dp per mm/h, capped); a hairline of air between slots.
+        // "Likely" bars are solid as before; "possible" bars are translucent with a crisp edge, so they still read
+        // over bright cloud. Beyond the 15-min data the length follows a smooth envelope between hour centres.
         float bx = 27, bmax = CW - bx - 16 - 8;
         Paint fp = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint wp = new Paint(Paint.ANTI_ALIAS_FLAG);
         wp.setColor(0xfff2f5fb);
+        Paint ep = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ep.setStyle(Paint.Style.STROKE);
+        ep.setStrokeWidth(0.9f * k);
         for (double s0 = Math.floor(now * 4) / 4; s0 < T1 && !values; s0 += 0.25) {
             Timeline.Sample sm = tl.at(s0 + 0.125);
             if (!WxClass.bar(sm)) continue;
-            double v = sm.R;
+            double v = barRate(tl, s0 + 0.125, sm);
+            boolean solid = WxClass.solid(sm);
             int pt = WxClass.ptype(sm);
             double ya = (Math.max(s0, now) - now) * PXH, yb = (s0 + 0.25 - now) * PXH;
             float bw = (float) Math.min(bmax, v * 26);
             RectF r = new RectF(bx * k, (float) (ya + 0.4) * k, (bx + bw) * k, (float) (ya + 0.4 + Math.max(0.6, yb - ya - 0.8)) * k);
             int col = WxClass.barColor(pt, v);
-            int save = c.saveLayerAlpha(r.left - 2, r.top - 2, r.right + 2, r.bottom + 2, (int) Math.round(0.95 * WxClass.presence(sm.P) * 255));
+            int save = c.saveLayerAlpha(r.left - 2, r.top - 2, r.right + 2, r.bottom + 2, Math.round((solid ? 0.95f : 0.45f) * 255));
             fp.setColor(col);
             c.drawRoundRect(r, 1.3f * k, 1.3f * k, fp);
             if (pt == Wx.SLEET) { // hatched #8cc0ff / #f2f5fb: 3.2 dp pattern rotated 40 deg (userSpaceOnUse)
@@ -523,6 +545,12 @@ final class Renderer {
                 c.restore();
             }
             c.restoreToCount(save);
+            if (!solid && r.height() > 2.2f * k) { // the crisp edge of a "possible" bar
+                ep.setColor(col);
+                ep.setAlpha(235);
+                float in2 = 0.45f * k;
+                c.drawRoundRect(new RectF(r.left + in2, r.top + in2, r.right - in2, r.bottom - in2), 1.1f * k, 1.1f * k, ep);
+            }
         }
 
         // hour scale (left), hourly temperatures (right), day name at midnight
