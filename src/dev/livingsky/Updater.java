@@ -319,6 +319,7 @@ final class Updater {
                 if (!in.colValues) prefs.edit().putBoolean("colValues", false).apply(); // expired: back to bars
                 Renderer.Out o;
                 synchronized (RENDER) {
+                dev.livingsky.render.Moon.ageOverride = prefs.moonAge();   // debug: a forced moon phase
                 o = Renderer.render(c, in, k);
                 if (in.mock || prefs.atMinutes() >= 0) {
                     SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);

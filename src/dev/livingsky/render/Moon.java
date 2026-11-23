@@ -7,7 +7,16 @@ package dev.livingsky.render;
 public final class Moon {
     private Moon() {}
 
-    /** @return {altitudeDeg, azimuthDeg (0 = N, 90 = E), illuminatedFraction 0..1, waxing ? 1 : 0} */
+    /** Debug (--es moonage): the moon's age in days (0 new, 7.4 first quarter, 14.8 full, 22.1 last quarter); NaN = real. */
+    public static volatile double ageOverride = Double.NaN;
+
+    static final double SYNODIC = 29.530588853;
+
+    /**
+     * @return {altitudeDeg, azimuthDeg (0 = N, 90 = E), illuminatedFraction 0..1, waxing ? 1 : 0, limbDeg}: limbDeg is
+     * the on-screen direction of the bright limb (degrees, 0 = right, 90 = down; the card faces south, east on the
+     * left), from the real Sun-Moon geometry: the lit side always points toward the Sun, tilted as seen from here.
+     */
     public static double[] at(double tH, double latDeg, double lonDeg) {
         double d = tH / 24.0 - 10956.0; // days since 2000 Jan 0.0 UT (1999-12-31 00:00), Schlyter epoch
         double N = rev(125.1228 - 0.0529538083 * d), i = 5.1454, w = rev(318.0634 + 0.1643573223 * d);
@@ -37,11 +46,23 @@ public final class Moon {
         double x = cos(ha) * cos(dec), y = sin(ha) * cos(dec), z = sin(dec);
         double xhor = x * sin(latDeg) - z * cos(latDeg), zhor = x * cos(latDeg) + z * sin(latDeg);
         double az = rev(Math.toDegrees(Math.atan2(y, xhor)) + 180), alt = Math.toDegrees(Math.asin(Math.max(-1, Math.min(1, zhor))));
-        // phase from the synodic month (reference new moon 2000-01-06 18:14 UT)
-        double days = tH / 24.0 - (10962 + 18.2333 / 24.0);
-        double age = ((days % 29.530588853) + 29.530588853) % 29.530588853;
-        double frac = (1 - Math.cos(2 * Math.PI * age / 29.530588853)) / 2;
-        return new double[]{alt, az, frac, age < 29.530588853 / 2 ? 1 : 0};
+        // phase from the true elongation (Moon - Sun ecliptic longitude): 0 new, 90 first quarter, 180 full
+        double sunLon = rev(Ls + 1.915 * sin(Ms) + 0.020 * sin(2 * Ms));
+        double elong = rev(lon - sunLon);
+        double age = ageOverride;
+        if (!Double.isNaN(age)) { // debug: the same moon, with the Sun placed for that age
+            elong = rev((((age % SYNODIC) + SYNODIC) % SYNODIC) / SYNODIC * 360);
+            sunLon = rev(lon - elong);
+        }
+        double frac = (1 - cos(elong)) / 2;
+        // bright limb: position angle chi (from celestial north toward east) of the Sun seen from the Moon, then
+        // relative to the local vertical with the parallactic angle q (Meeus, ch. 14 and 48)
+        double ras = Math.toDegrees(Math.atan2(cos(ecl) * sin(sunLon), cos(sunLon))), decs = Math.toDegrees(Math.asin(sin(ecl) * sin(sunLon)));
+        double chi = Math.toDegrees(Math.atan2(cos(decs) * sin(ras - ra), sin(decs) * cos(dec) - cos(decs) * sin(dec) * cos(ras - ra)));
+        double q = Math.toDegrees(Math.atan2(sin(ha), Math.tan(Math.toRadians(latDeg)) * cos(dec) - sin(dec) * cos(ha)));
+        double zen = chi - q;                                      // from "up", toward the east (= left on the card)
+        double limb = Math.toDegrees(Math.atan2(-cos(zen), -sin(zen)));   // screen: (-sin zen, -cos zen)
+        return new double[]{alt, az, frac, elong < 180 ? 1 : 0, limb};
     }
 
     private static double rev(double x) { return x - Math.floor(x / 360.0) * 360.0; }

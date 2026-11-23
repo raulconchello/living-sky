@@ -18,13 +18,14 @@ import java.util.List;
 import java.util.Random;
 
 import dev.livingsky.render.Moon;
+import dev.livingsky.render.NightClouds;
 import dev.livingsky.render.SkyShader;
 import dev.livingsky.render.WxState;
 
 /**
  * The foreground weather pass: what makes each state readable at a glance on the home screen. The sky shader alone
  * paints behind the skyline, so here the weather is layered around it, stylised and calm:
- *   sky()          behind the skyline: sun bloom, crisp stars, the moon, cumulus, the lightning bolt and its flash;
+ *   sky()          behind the skyline: sun bloom, crisp stars, the moon, cumulus (night: NightClouds), the bolt and its flash;
  *   afterSkyline() over the skyline: fog bank + mist + light halos, rain curtains, rim light, snow on the roofs;
  *   afterGround()  over everything: near fog, wet sheen, snow / hail on the ground, rain, snow, hail, wind.
  * All coordinates in dp (card space), drawn in px (x k). Deterministic per state and day.
@@ -76,7 +77,10 @@ final class WeatherFx {
         if (!night && sunUp && (kind == WxState.CLEAR || kind == WxState.PARTLY)) sunBloom(c);
         if (night && sp.cover < 0.9 && !st.precip() && kind != WxState.FOG) stars(c, skyPx);
         if (night && sp.cover < 0.8 && !st.precip() && kind != WxState.FOG) moon(c, skyPx);
-        if (kind == WxState.PARTLY || kind == WxState.SHOWERS) cumulus(c, kind == WxState.SHOWERS);
+        if (kind == WxState.PARTLY || kind == WxState.SHOWERS) {
+            if (night) nightClouds(c, kind == WxState.SHOWERS, night && sp.cover < 0.8 && !st.precip());
+            else cumulus(c, kind == WxState.SHOWERS);
+        }
         if (st.lightning) bolt(c);
     }
 
@@ -115,40 +119,85 @@ final class WeatherFx {
         }
     }
 
-    /** The moon at its real phase, placed in the right part of the sky by its real azimuth / altitude. */
-    private void moon(Canvas c, Bitmap skyPx) {
+    /** Where the moon sits on the card (dp) and how much light it gives: {x, y, light 0..1}, or null below the horizon. */
+    private double[] moonPlace() {
         double[] m = Moon.at(now, lat, lon);
-        if (m[0] < 2 || m[2] < 0.04) return;
-        float x = (float) Math.max(178, Math.min(258, 200 + (m[1] - 180) * 0.6));
-        float y = (float) Math.max(16, Math.min(64, 118 - m[0] * 1.5));
+        if (m[0] < 2 || m[2] < 0.04) return null;
+        double x = Math.max(178, Math.min(258, 200 + (m[1] - 180) * 0.6));
+        double y = Math.max(16, Math.min(64, 118 - m[0] * 1.5));
+        return new double[]{x, y, Math.pow(m[2], 1.3) * Math.min(1, (m[0] - 2) / 8), m[2], m[4]};
+    }
+
+    /**
+     * The moon at its real phase, placed in the right part of the sky by its real azimuth / altitude, its lit side
+     * turned toward the Sun as seen from here (waxing: lit on the right, tilted by the real geometry).
+     */
+    private void moon(Canvas c, Bitmap skyPx) {
+        double[] mp0 = moonPlace();
+        if (mp0 == null) return;
+        float x = (float) mp0[0], y = (float) mp0[1];
+        double f = mp0[3];
         int c0 = skyPx.getPixel((int) (x * k), (int) (y * k));
         double lum = Color.red(c0) * 0.3 + Color.green(c0) * 0.55 + Color.blue(c0) * 0.15;
         double vis = 1 - Math.max(0, Math.min(0.85, (lum - 30) / 60.0)); // behind cloud: dimmer
         float R = 5.4f * k, cx = x * k, cy = y * k;
         Paint g = paint();
-        g.setShader(new RadialGradient(cx, cy, R * 4.5f, new int[]{argb(0.30 * vis * m[2], 230, 232, 245), 0}, null, Shader.TileMode.CLAMP));
+        g.setShader(new RadialGradient(cx, cy, R * 4.5f, new int[]{argb(0.30 * vis * f, 230, 232, 245), 0}, null, Shader.TileMode.CLAMP));
         g.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
         c.drawCircle(cx, cy, R * 4.5f, g);
+        // earthshine: the dark part only as a very faint ashen disc (strongest for a thin crescent), never a grey plate
         Paint earth = paint();
-        earth.setColor(argb(0.22 * vis, 120, 126, 150));
+        earth.setColor(argb(0.10 * vis * (1 - f), 92, 98, 122));
         c.drawCircle(cx, cy, R, earth);
-        // lit part: limb half-disc + terminator half-ellipse
-        double f = m[2];
-        boolean waxing = m[3] > 0.5;
+        // lit part, drawn with the bright limb on the right, then turned to the real bright-limb direction:
+        // limb half-disc + terminator half-ellipse (bulging toward the limb for a crescent, away for a gibbous moon)
         Path lit = new Path();
         RectF disc = new RectF(cx - R, cy - R, cx + R, cy + R);
         float rx = (float) (R * Math.abs(1 - 2 * f));
         RectF ell = new RectF(cx - rx, cy - R, cx + rx, cy + R);
-        float side = waxing ? 1 : -1; // lit limb on the right while waxing (northern hemisphere)
-        if (side > 0) lit.arcTo(disc, -90, 180, true); else lit.arcTo(disc, 90, 180, true);
-        // back along the terminator: bulging toward the limb for a crescent, away from it for a gibbous moon
-        boolean crescent = f < 0.5;
-        if (side > 0) lit.arcTo(ell, 90, crescent ? -180 : 180, false); else lit.arcTo(ell, -90, crescent ? -180 : 180, false);
+        lit.arcTo(disc, -90, 180, true);
+        lit.arcTo(ell, 90, f < 0.5 ? -180 : 180, false);
         lit.close();
         Paint mp = paint();
         mp.setColor(argb(0.95 * vis, 246, 242, 228));
         mp.setMaskFilter(new BlurMaskFilter(Math.max(0.5f, 0.35f * k), BlurMaskFilter.Blur.NORMAL));
+        c.save();
+        c.rotate((float) mp0[4], cx, cy);
         c.drawPath(lit, mp);
+        c.restore();
+    }
+
+    /**
+     * Broken cloud at night ({@link NightClouds}): soft fbm clouds in perspective, dark bodies, see-through thin parts,
+     * silver rims and a glow toward the moon, a faint warm city glow on the bases, the afterglow in late twilight.
+     */
+    private void nightClouds(Canvas c, boolean showers, boolean moonUp) {
+        NightClouds nc = new NightClouds(seed ^ 0xC10D5L);
+        nc.cover = sp.cover;
+        nc.showers = showers;
+        nc.windy = st.windy;
+        nc.HY = sp.HY;
+        nc.focal = sp.focal;
+        double[] m = moonUp ? moonPlace() : null;
+        if (m != null) { nc.moonX = m[0]; nc.moonY = m[1]; nc.moonLight = m[2]; }
+        nc.twilight = Math.max(0, Math.min(1, (sp.el + 13) / 9.0));
+        nc.twilight = nc.twilight * nc.twilight * (3 - 2 * nc.twilight);
+        nc.sunX = sp.sunX;
+        double s = k * 0.6;
+        int pw = (int) Math.ceil(272 * s), ph = (int) Math.ceil((sp.HY + 2) * s);
+        nc.render(pw, ph, s);
+        RectF dst = new RectF(0, 0, (float) (pw / s * k), (float) (ph / s * k));
+        Paint fp = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+        Bitmap lb = Bitmap.createBitmap(nc.layer, pw, ph, Bitmap.Config.ARGB_8888);
+        c.drawBitmap(lb, null, dst, fp);
+        lb.recycle();
+        if (m != null) {
+            Bitmap gb = Bitmap.createBitmap(nc.glow, pw, ph, Bitmap.Config.ARGB_8888);
+            Paint sp2 = new Paint(Paint.FILTER_BITMAP_FLAG);
+            sp2.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
+            c.drawBitmap(gb, null, dst, sp2);
+            gb.recycle();
+        }
     }
 
     /** Fair-weather cumulus: separate puffy clouds with flat bases, smaller toward the horizon. */

@@ -27,7 +27,8 @@ src/dev/livingsky/
     SkyShader        the card's sky: clouds, sun, stars, fog, rain, snow
     BandShader       the timeline's sky, hour by hour
     DaylightGrade    lights the skyline by day (sun side, shade, materials)
-    Sun, Moon        real positions and moon phase
+    NightClouds      broken cloud at night: soft, see-through, moonlit rims
+    Sun, Moon        real positions, moon phase and the tilt of its lit side
     WxState, Wx      weather classes and the forecast model
   Renderer         draws the card bitmap and the timeline bitmap
   WidgetUpdater    builds the RemoteViews: card, clock, timeline list, taps
@@ -70,6 +71,7 @@ adb shell am broadcast -a dev.livingsky.DEBUG -n dev.livingsky/.DebugReceiver \
 | `at` | A time such as `07:45`, or `none` |
 | `alarm` | A time such as `'Mon 07:30'`, or `none` or `real` |
 | `colmode` | `bars` or `values` |
+| `moonage` | The moon's age in days, e.g. `7.4` for first quarter (`0` new, `14.8` full), or `none` |
 | `dump` | `true` writes `preview.png` and `column.png` to `Android/data/dev.livingsky/files/` |
 | `cmd` | `render`, `refresh` or `hosted` (renders the real widget offscreen to `hosted.png`) |
 

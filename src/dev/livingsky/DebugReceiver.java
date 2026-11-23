@@ -13,7 +13,8 @@ import android.util.Log;
  *         scenario (""|clear|partly|overcast|rain|heavy|snow|sleet|fog|thunder), at ("HH:mm" | "" for real time),
  *         cardDx, cardDy (int px), clockDx, clockDy (float px), dump (true: write preview.png / column.png),
  *         reset (true: clear all overrides),
- *         raindebug (true: log per-hour column rain), nowcast (off: old column precipitation, for before/after), alarm ("Mon 00:30" | "08:45" | none | real: mock the next alarm),
+ *         raindebug (true: log per-hour column rain), nowcast (off: old column precipitation, for before/after),
+ *         moonage (days since new moon, e.g. 7.4 = first quarter; none = real), alarm ("Mon 00:30" | "08:45" | none | real: mock the next alarm),
  *         colmode (values | bars: the column's tap mode, values held 10 min), colscroll (dp, preview dumps only),
  *         cmd (render | refresh | clearauto | remote | hosted | toggle).
  */
@@ -28,7 +29,7 @@ public class DebugReceiver extends BroadcastReceiver {
         SharedPreferences.Editor e = new Prefs(c).edit();
         if (i.getBooleanExtra("reset", false)) {
             e.remove("place").remove("mode").remove("mock").remove("scenario").remove("atMinutes").remove("autoName")
-             .remove("colValues").remove("colUntil").remove("colScroll").remove("alarm").remove("nowcastOff");
+             .remove("colValues").remove("colUntil").remove("colScroll").remove("alarm").remove("nowcastOff").remove("moonAge");
         }
         if (i.hasExtra("place")) e.putString("place", none(i.getStringExtra("place")));
         if (i.hasExtra("lat")) Prefs.putDouble(e, "autoLat", Double.parseDouble(i.getStringExtra("lat")));
@@ -55,6 +56,10 @@ public class DebugReceiver extends BroadcastReceiver {
         }
         if (i.hasExtra("raindebug")) e.putBoolean("rainDebug", "true".equals(i.getStringExtra("raindebug")));
         if (i.hasExtra("nowcast")) e.putBoolean("nowcastOff", "off".equals(i.getStringExtra("nowcast")));
+        if (i.hasExtra("moonage")) { // the moon's age in days (0 new .. 14.8 full .. 29.5), or none / live = real
+            String ma = none(i.getStringExtra("moonage"));
+            if (ma.isEmpty() || ma.equals("real")) e.remove("moonAge"); else e.putFloat("moonAge", Float.parseFloat(ma));
+        }
         if (i.hasExtra("dump")) e.putBoolean("dump", "true".equals(i.getStringExtra("dump")));
         if (i.hasExtra("cardDx")) e.putInt("cardDx", Integer.parseInt(i.getStringExtra("cardDx")));
         if (i.hasExtra("cardDy")) e.putInt("cardDy", Integer.parseInt(i.getStringExtra("cardDy")));

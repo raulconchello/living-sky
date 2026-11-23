@@ -55,6 +55,8 @@ final class Prefs {
     boolean rainDebug() { return sp.getBoolean("rainDebug", false); }
     /** Debug: false = the old column precipitation (ensemble from now, no cutoff), for before/after renders. */
     boolean nowcast() { return !sp.getBoolean("nowcastOff", false); }
+    /** Debug: the moon's age in days, or NaN for the real moon. */
+    double moonAge() { return sp.contains("moonAge") ? sp.getFloat("moonAge", 0) : Double.NaN; }
     String lastError() { return sp.getString("lastError", ""); }
     long lastErrorAt() { return sp.getLong("lastErrorAt", 0); }
     String lastInfo() { return sp.getString("lastInfo", ""); }
