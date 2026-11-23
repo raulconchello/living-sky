@@ -4,6 +4,8 @@
 #   ./build.sh            build build/living-sky.apk
 #   ./build.sh install    build, install on the attached phone (adb) and refresh the widget
 #   ./build.sh desktop    run the pure-Java sky shaders on the PC (tools/DesktopSky.java) -> build/desktop-out
+#   ./build.sh test       the weather pipeline's invariant test on the PC (tools/TimelineTest.java)
+#   ./build.sh live       live forecast + radar for Ulm, Barcelona, Malgrat, Chicago through the same code (tools/LiveHarness.java)
 #
 # Env: ANDROID_SDK (default $ANDROID_HOME, then ~/Android/Sdk), BUILD_TOOLS (35.0.0), PLATFORM (android-36),
 #      JAVA_TOOL (command prefix for javac/java/d8, e.g. "mise x java@21 --"), KEYSTORE, ADB_SERIAL.
@@ -26,6 +28,14 @@ SERIAL=${ADB_SERIAL:-$("$ADB" devices 2>/dev/null | awk 'NR>1 && $2=="device"{pr
 
 B=$ROOT/build
 mkdir -p "$B"
+
+if [[ "${1:-}" == "test" || "${1:-}" == "live" ]]; then
+  rm -rf "$B/desktop-test" && mkdir -p "$B/desktop-test"
+  $JAVA_TOOL javac -nowarn -encoding UTF-8 -d "$B/desktop-test" src/dev/livingsky/render/*.java tools/TimelineTest.java tools/LiveHarness.java
+  if [[ "$1" == "test" ]]; then $JAVA_TOOL java -cp "$B/desktop-test" TimelineTest "${@:2}"
+  else $JAVA_TOOL java -cp "$B/desktop-test" LiveHarness "${@:2}"; fi
+  exit $?
+fi
 
 if [[ "${1:-}" == "desktop" ]]; then
   rm -rf "$B/desktop" && mkdir -p "$B/desktop" "$B/desktop-out"
