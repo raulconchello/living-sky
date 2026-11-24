@@ -14,7 +14,7 @@ An Android home-screen widget that shows your city's skyline under the sky you h
 
 <img src="docs/img/skylines.png" alt="All skylines by day">
 
-The 11 hand-drawn skylines were made by **Claude Opus 5.5**, one AI agent per city. Florence (last) is automatic.
+The 11 hand-drawn skylines were made by **Claude Opus 5.5**, one AI agent per city.
 
 ## Timeline
 

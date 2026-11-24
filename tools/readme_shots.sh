@@ -161,12 +161,22 @@ sec_skylines() {
   prep ulm --es name none   # back to a plain forecast cache, no display-name override
   sec_skylinegrid
 }
+# only the automatic skyline, then both grids from the renders already in $W/cut (KEEP=1 runs, e.g. after the
+# phone's network dropped during "skylines")
+sec_auto() {
+  set -- $AUTO_PLACE
+  prep auto --es lat "$2" --es lon "$3" --es name "'${*:4}'" || return
+  shot s_auto auto partly 14:30 auto bars none
+  shot n_auto auto clear 21:30 auto bars none
+  prep ulm --es name none
+  sec_skylinegrid
+}
 # the two grids from the renders already in $W/cut (KEEP=1 runs)
 sec_skylinegrid() {
   local d=() n=() p
-  for p in "${PLACES[@]}" auto; do
-    tile "s_$p" 522x "$W/t_s_$p.png"; d+=("$W/t_s_$p.png")
-    tile "n_$p" 522x "$W/t_n_$p.png"; n+=("$W/t_n_$p.png")
+  for p in "${PLACES[@]}" auto; do   # a missing render (e.g. auto when OpenStreetMap is down) is left out
+    [[ -f "$X/s_$p.png" ]] && { tile "s_$p" 522x "$W/t_s_$p.png"; d+=("$W/t_s_$p.png"); }
+    [[ -f "$X/n_$p.png" ]] && { tile "n_$p" 522x "$W/t_n_$p.png"; n+=("$W/t_n_$p.png"); }
   done
   grid "$OUT/skylines.png" 3 16 "${d[@]}"
   grid "$OUT/skylines_night.png" 3 16 "${n[@]}"
