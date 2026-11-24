@@ -77,6 +77,7 @@ adb shell am broadcast -a dev.livingsky.DEBUG -n dev.livingsky/.DebugReceiver \
 | `colmode` | `bars` or `values` |
 | `clouds` | `old` shows the previous cartoon clouds and the hard day/night switch (for before/after images); `new` is the default |
 | `textfx` | Card text shadows: `new` (default, the column's per-glyph halo), `old` (the previous block shadow and scrim, for before/after), or `mask` (text in magenta, for measuring) |
+| `todaymark` | Today in the strip: `new` (default, a faint tint over the whole today column) or `old` (the bold name, for before/after) |
 | `strip` | Day strip: `new` (default, today + 4 days) or `old` (the next 4 days, for before/after) |
 | `moonage` | The moon's age in days, e.g. `7.4` for first quarter (`0` new, `14.8` full), or `none` |
 | `raindebug` | `true` logs the timeline per hour (`adb logcat -s LivingSky`): source (`radar`, `obs`, `det`, `ens`, `blend`), chance, rate, cloud |

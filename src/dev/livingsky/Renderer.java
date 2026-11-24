@@ -430,7 +430,7 @@ final class Renderer {
             SimpleDateFormat dn = new SimpleDateFormat("EEE", Locale.ENGLISH);
             dn.setTimeZone(in.tz);
             // today + the next 4 days (Raul, 24 Nov): today is the whole calendar day (00-24, the hours already past
-            // included), labelled with its weekday like the others, a touch bolder (a dot under it crowded the numbers).
+            // included), labelled with its weekday like the others and marked by a faint tint over its column.
             // Five slots: type and icons a little smaller (name 11.5, max 11.5, min 10.5, icon 17.5 dp) to fit 246 dp.
             // Debug (--es strip old): the previous strip, the next 4 days at the full sizes.
             String mode = new Prefs(ctx).strip();
@@ -438,8 +438,12 @@ final class Renderer {
             int slots = old ? 4 : 5;
             float sName = old ? 12.5f : 11.5f, sHi = old ? 12 : 11.5f, sLo = old ? 11 : 10.5f, sIcon = old ? 19.5f : 17.5f;
             Paint pD = TextKit.paint(ctx, 600, sName * k, Color.WHITE, FEAT_STRIP);
-            Paint pToday = new Paint(pD);   // today's name: Inter 600 thickened by a 0.45 dp stroke (no 700 face bundled)
-            if (!old) { pToday.setStyle(Paint.Style.FILL_AND_STROKE); pToday.setStrokeWidth(0.45f * k); pToday.setStrokeJoin(Paint.Join.ROUND); }
+            // today's mark (Raul, 24 Nov, sketch "4i"): a faint tint over today's whole column of the strip, from the
+            // top of the strip to the card's bottom edge; the name keeps the others' weight.
+            // Debug (--es todaymark old): the previous mark, today's name a touch bolder (0.45 dp stroke on Inter 600).
+            boolean oldMark = !old && new Prefs(ctx).todayMarkOld();
+            Paint pToday = new Paint(pD);
+            if (oldMark) { pToday.setStyle(Paint.Style.FILL_AND_STROKE); pToday.setStrokeWidth(0.45f * k); pToday.setStrokeJoin(Paint.Join.ROUND); }
             Paint pH = TextKit.paint(ctx, 600, sHi * k, Color.WHITE, FEAT_STRIP);
             Paint pLo = TextKit.paint(ctx, 400, sLo * k, white(0.62f), FEAT_STRIP);
             float sls = -0.4f * k;
@@ -467,6 +471,7 @@ final class Renderer {
                 float nameW = (Float) d[3], hiW = (Float) d[4], dayW = (Float) d[5];
                 boolean today = (Boolean) d[7];
                 b.text(today ? pToday : pD, (String) d[0], dx, yName, 0);
+                if (today && !old && !oldMark) todayTint(c, dx, dayW, k);
                 iconPos.add(new float[]{dx / k + nameW / k + 3, 148 + (19.5f - sIcon) / 2, sIcon});
                 iconKeys.add((String) d[6]);
                 numText(b, pH, (String) d[1], dx, yNum, sls, k);
@@ -479,6 +484,17 @@ final class Renderer {
         b.flush(c, textShadows(ctx, k, in.day));
         c.drawPath(arrow, ap);
         for (int i = 0; i < iconPos.size(); i++) icon(ctx, c, iconKeys.get(i), iconPos.get(i)[0], iconPos.get(i)[1], iconPos.get(i)[2], k);
+    }
+
+    /** Today's tint in the strip: a white 11 % tint over the slot, from the strip's top to the card's bottom edge. */
+    static void todayTint(Canvas c, float dx, float dayW, float k) {
+        RectF r = new RectF(dx - 5 * k, 145 * k, dx + dayW + 4 * k, CARD_H * k);
+        float rad = 10 * k;
+        Path p = new Path();
+        p.addRoundRect(r, new float[]{rad, rad, rad, rad, 0, 0, 0, 0}, Path.Direction.CW);   // the card's corner clips the bottom
+        Paint f = new Paint(Paint.ANTI_ALIAS_FLAG);
+        f.setColor(Color.argb(Math.round(0.11f * 255), 255, 255, 255));
+        c.drawPath(p, f);
     }
 
     /**

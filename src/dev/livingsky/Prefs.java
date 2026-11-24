@@ -62,6 +62,8 @@ final class Prefs {
     String textFx() { return sp.getString("textFx", ""); }
     /** Debug: the day strip ("" today + 4 days, "old" the previous next 4 days). */
     String strip() { return sp.getString("strip", ""); }
+    /** Debug: the previous today mark in the strip (the bold name), for before/after renders. */
+    boolean todayMarkOld() { return "old".equals(sp.getString("todayMark", "")); }
     double moonAge() { return sp.contains("moonAge") ? sp.getFloat("moonAge", 0) : Double.NaN; }
     String lastError() { return sp.getString("lastError", ""); }
     long lastErrorAt() { return sp.getLong("lastErrorAt", 0); }
