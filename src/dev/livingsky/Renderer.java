@@ -59,7 +59,35 @@ final class Renderer {
 
     static float baseline(float top, float size) { return top + ASC * size; }
 
-    /** CSS text-shadow of the left text: proposal B by day (deeper, bluish, plus a wide halo), the original at night. */
+    /**
+     * The card's left text (location, clock, temperature, feels-like, UV / RH, day strip) has the column numbers' halo:
+     * each glyph its own soft shadow, from the glyphs at full strength grown by a 0.6 dp round stroke, two black shadows
+     * 4 dp + 1.2 dp at 70 % (Raul's choice "A", 24 Nov). No shared darkening behind the text block.
+     * Debug (--es textfx): "old" = the previous look (CSS shadows with the 12 / 26 dp halos, plus the sky's text scrim),
+     * "mask" = every glyph opaque magenta and no shadows (for contrast measurements).
+     */
+    static String textFx(Context ctx) { return ctx == null ? "" : new Prefs(ctx).textFx(); }
+
+    static boolean oldText(Context ctx) { return "old".equals(textFx(ctx)); }
+
+    /** A text batch for the card's left text. */
+    static TextKit.Batch textBatch(Context ctx, int w, int h, float k) {
+        TextKit.Batch b = new TextKit.Batch(w, h);
+        String fx = textFx(ctx);
+        if (fx.equals("mask")) b.force(0xffff00ff);
+        else if (!fx.equals("old")) b.halo(0.6f * k);
+        return b;
+    }
+
+    static TextKit.Shadow[] textShadows(Context ctx, float k, boolean day) {
+        String fx = textFx(ctx);
+        if (fx.equals("old")) return textShadows(k, day);
+        if (fx.equals("mask")) return new TextKit.Shadow[0];
+        int s = Color.argb(Math.round(0.7f * 255), 0, 0, 0);
+        return new TextKit.Shadow[]{new TextKit.Shadow(0, 0, 4 * k, s), new TextKit.Shadow(0, 0, 1.2f * k, s)};
+    }
+
+    /** The previous CSS text-shadow (only --es textfx old): proposal B by day (bluish, plus wide halos), the original at night. */
     static TextKit.Shadow[] textShadows(float k, boolean day) {
         if (day) return new TextKit.Shadow[]{
                 new TextKit.Shadow(0, 1 * k, 1.5f * k, Color.argb(Math.round(0.45f * 255), 8, 18, 40)),
@@ -235,6 +263,7 @@ final class Renderer {
         int W = g.cardW, H = g.cardH;
         // 1. sky: painted at half resolution, upscaled (bicubic) and grained, like sky8.js paint(sky, W, H, 0.5, ..., 7)
         sp.layerClouds = !in.mock && WeatherFx.layerClouds(sp.state, 1);
+        sp.noScrim = !oldText(ctx);   // the text carries its own halo: no shared darkening behind it
         int pw = (int) Math.round(CARD_W * k * 0.5), ph = (int) Math.round(CARD_H * k * 0.5);
         int[] lo = new SkyShader(sp).render(pw, ph, k * 0.5);
         int[] full = Px.upscale(lo, pw, ph, W, H);
@@ -315,7 +344,7 @@ final class Renderer {
         float k = g.k;
         Timeline tl = in.tl;
         Timeline.Sample now = tl.now;
-        TextKit.Batch b = new TextKit.Batch(g.cardW, g.cardH);
+        TextKit.Batch b = textBatch(ctx, g.cardW, g.cardH, k);
 
         // --- location line (17, 11): arrow, "Sublocality, City" (12 dp, 500), " · Sun, 22 Nov" (400, 85 %); opacity .95
         float size = 12, ls = 0.2f * k, top = 11;
@@ -392,7 +421,7 @@ final class Renderer {
             b.text(pV, Math.round(Math.max(0, now.rh)) + "%", sx, sb, 0);
         }
 
-        // --- day strip (15, 150), width 246: the next 4 days, aggregated from the column's own hourly samples
+        // --- day strip (15, 150), width 246: today + 4 days, aggregated from the column's own hourly samples
         List<float[]> iconPos = new ArrayList<>();
         List<String> iconKeys = new ArrayList<>();
         if (!in.noData) {
@@ -400,42 +429,56 @@ final class Renderer {
             int d0 = w.dayIndex(in.now);
             SimpleDateFormat dn = new SimpleDateFormat("EEE", Locale.ENGLISH);
             dn.setTimeZone(in.tz);
-            Paint pD = TextKit.paint(ctx, 600, 12.5f * k, Color.WHITE, FEAT_STRIP);
-            Paint pH = TextKit.paint(ctx, 600, 12 * k, Color.WHITE, FEAT_STRIP);
-            Paint pLo = TextKit.paint(ctx, 400, 11 * k, white(0.62f), FEAT_STRIP);
+            // today + the next 4 days (Raul, 24 Nov): today is the whole calendar day (00-24, the hours already past
+            // included), labelled with its weekday like the others, a touch bolder (a dot under it crowded the numbers).
+            // Five slots: type and icons a little smaller (name 11.5, max 11.5, min 10.5, icon 17.5 dp) to fit 246 dp.
+            // Debug (--es strip old): the previous strip, the next 4 days at the full sizes.
+            String mode = new Prefs(ctx).strip();
+            boolean old = mode.equals("old");
+            int slots = old ? 4 : 5;
+            float sName = old ? 12.5f : 11.5f, sHi = old ? 12 : 11.5f, sLo = old ? 11 : 10.5f, sIcon = old ? 19.5f : 17.5f;
+            Paint pD = TextKit.paint(ctx, 600, sName * k, Color.WHITE, FEAT_STRIP);
+            Paint pToday = new Paint(pD);   // today's name: Inter 600 thickened by a 0.45 dp stroke (no 700 face bundled)
+            if (!old) { pToday.setStyle(Paint.Style.FILL_AND_STROKE); pToday.setStrokeWidth(0.45f * k); pToday.setStrokeJoin(Paint.Join.ROUND); }
+            Paint pH = TextKit.paint(ctx, 600, sHi * k, Color.WHITE, FEAT_STRIP);
+            Paint pLo = TextKit.paint(ctx, 400, sLo * k, white(0.62f), FEAT_STRIP);
             float sls = -0.4f * k;
             List<Object[]> days = new ArrayList<>();
             float total = 0;
-            for (int i = d0 + 1; i <= d0 + 4 && i >= 1 && i < w.dT.length; i++) {
-                WxClass.Day day = tl.dayAt(i);
+            int first = old ? d0 + 1 : d0;
+            for (int i = first; i < first + slots && i >= 0 && i < w.dT.length; i++) {
+                boolean today = i == d0;
+                WxClass.Day day = today ? tl.todayFull() : tl.dayAt(i);
                 if (day == null) continue;
                 String name = dn.format(new Date((long) ((w.dT[i] + 12) * 3600000L)));
                 String hi = deg(day.max), lo = deg(day.min);
-                float nameW = TextKit.width(pD, name, 0);
+                float nameW = TextKit.width(today ? pToday : pD, name, 0);
                 float hiW = numW(pH, hi, sls, k), loW = numW(pLo, lo, sls, k);
-                float dayW = Math.max(nameW + 3 * k + 19.5f * k, hiW + 2.5f * k + loW);
+                float dayW = Math.max(nameW + 3 * k + sIcon * k, hiW + 2.5f * k + loW);
                 total += dayW;
-                days.add(new Object[]{name, hi, lo, nameW, hiW, dayW, day.icon});
+                days.add(new Object[]{name, hi, lo, nameW, hiW, dayW, day.icon, today});
             }
             int n = days.size();
             float gap = n > 1 ? Math.max(0, (246 * k - total) / (n - 1)) : 0;
             float dx = 15 * k;
-            float yName = (150 + (15.5f - LH * 12.5f) / 2 + ASC * 12.5f) * k;
-            float yNum = (150 + 15.5f + ASC * 12) * k;
+            float yName = (150 + (15.5f - LH * sName) / 2 + ASC * sName) * k;
+            float yNum = (150 + 15.5f + ASC * sHi) * k;
             for (Object[] d : days) {
                 float nameW = (Float) d[3], hiW = (Float) d[4], dayW = (Float) d[5];
-                b.text(pD, (String) d[0], dx, yName, 0);
-                iconPos.add(new float[]{dx / k + nameW / k + 3, 148});
+                boolean today = (Boolean) d[7];
+                b.text(today ? pToday : pD, (String) d[0], dx, yName, 0);
+                iconPos.add(new float[]{dx / k + nameW / k + 3, 148 + (19.5f - sIcon) / 2, sIcon});
                 iconKeys.add((String) d[6]);
                 numText(b, pH, (String) d[1], dx, yNum, sls, k);
                 numText(b, pLo, (String) d[2], dx + hiW + 2.5f * k, yNum, sls, k);
                 dx += dayW + gap;
             }
+            if (total > 246 * k) android.util.Log.w(Locator.TAG, "strip: " + Math.round(total / k) + " dp > 246 dp");
         }
 
-        b.flush(c, textShadows(k, in.day));
+        b.flush(c, textShadows(ctx, k, in.day));
         c.drawPath(arrow, ap);
-        for (int i = 0; i < iconPos.size(); i++) icon(ctx, c, iconKeys.get(i), iconPos.get(i)[0], iconPos.get(i)[1], 19.5f, k);
+        for (int i = 0; i < iconPos.size(); i++) icon(ctx, c, iconKeys.get(i), iconPos.get(i)[0], iconPos.get(i)[1], iconPos.get(i)[2], k);
     }
 
     /**
@@ -640,10 +683,10 @@ final class Renderer {
         Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         c.translate(-CLOCK_X * k, -CLOCK_Y * k);
-        TextKit.Batch t = new TextKit.Batch(Math.round(CARD_W * k), Math.round(CARD_H * k));
+        TextKit.Batch t = textBatch(ctx, Math.round(CARD_W * k), Math.round(CARD_H * k), k);
         Paint pc = TextKit.paint(ctx, 200, 54 * k, Color.WHITE, FEAT);
         t.text(pc, text, 13 * k, baseline(22, 54, 54) * k, -1.8f * k);
-        t.flush(c, textShadows(k, day));
+        t.flush(c, textShadows(ctx, k, day));
         return b;
     }
 
@@ -873,10 +916,10 @@ final class Renderer {
         if (o.alarmTab != null)
             c.drawBitmap(o.alarmTab, g.colL + (g.colW - o.alarmTab.getWidth()) / 2, g.colT + g.colH - o.alarmTab.getHeight(), null);
         c.restore();
-        TextKit.Batch b = new TextKit.Batch(g.cardW, g.cardH);
+        TextKit.Batch b = textBatch(ctx, g.cardW, g.cardH, k);
         Paint pc = TextKit.paint(ctx, 200, 54 * k, Color.WHITE, FEAT);
         b.text(pc, clockText, 13 * k, baseline(22, 54, 54) * k, -1.8f * k);
-        b.flush(c, textShadows(k, o.day));
+        b.flush(c, textShadows(ctx, k, o.day));
         return p;
     }
 }

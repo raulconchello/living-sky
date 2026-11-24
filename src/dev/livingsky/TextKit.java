@@ -119,6 +119,11 @@ final class TextKit {
          */
         Batch halo(float strokePx) { haloStroke = strokePx; return this; }
 
+        private int forceColor;
+
+        /** Debug: draw every glyph opaque in this colour and no shadows (a mask of where the text is). */
+        Batch force(int color) { forceColor = color; return this; }
+
         float text(Paint p, String s, float x, float y, float ls) {
             Paint mp = new Paint(p);
             int ma = Color.alpha(p.getColor());
@@ -138,6 +143,15 @@ final class TextKit {
 
         /** Paints the shadows (last one first, like CSS) and then the text. */
         void flush(Canvas target, Shadow... shadows) {
+            if (forceColor != 0) {
+                for (Object[] o : ops) {
+                    Paint fp = new Paint((Paint) o[0]);
+                    fp.setColor(forceColor);
+                    draw(target, fp, (String) o[1], (Float) o[2], (Float) o[3], (Float) o[4]);
+                }
+                mask.recycle();
+                return;
+            }
             for (int i = shadows.length - 1; i >= 0; i--) {
                 Shadow s = shadows[i];
                 Paint bp = new Paint();

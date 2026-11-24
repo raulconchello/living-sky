@@ -29,7 +29,7 @@ public class DebugReceiver extends BroadcastReceiver {
         SharedPreferences.Editor e = new Prefs(c).edit();
         if (i.getBooleanExtra("reset", false)) {
             e.remove("place").remove("mode").remove("mock").remove("scenario").remove("atMinutes").remove("autoName")
-             .remove("colValues").remove("colUntil").remove("colScroll").remove("alarm").remove("nowcastOff").remove("moonAge").remove("cloudsOld");
+             .remove("colValues").remove("colUntil").remove("colScroll").remove("alarm").remove("nowcastOff").remove("moonAge").remove("cloudsOld").remove("textFx").remove("strip");
         }
         if (i.hasExtra("place")) e.putString("place", none(i.getStringExtra("place")));
         if (i.hasExtra("lat")) Prefs.putDouble(e, "autoLat", Double.parseDouble(i.getStringExtra("lat")));
@@ -57,6 +57,14 @@ public class DebugReceiver extends BroadcastReceiver {
         if (i.hasExtra("raindebug")) e.putBoolean("rainDebug", "true".equals(i.getStringExtra("raindebug")));
         if (i.hasExtra("nowcast")) e.putBoolean("nowcastOff", "off".equals(i.getStringExtra("nowcast")));
         if (i.hasExtra("clouds")) e.putBoolean("cloudsOld", "old".equals(i.getStringExtra("clouds")));
+        if (i.hasExtra("strip")) { // the day strip: new (default, today + 4 days) | old (the next 4 days)
+            String sl = none(i.getStringExtra("strip"));
+            if (sl.isEmpty() || sl.equals("new") || sl.equals("now")) e.remove("strip"); else e.putString("strip", sl);
+        }
+        if (i.hasExtra("textfx")) { // the card text's shadows: new (default) | old (previous look) | mask (measuring)
+            String tf = none(i.getStringExtra("textfx"));
+            if (tf.isEmpty() || tf.equals("new") || tf.equals("now")) e.remove("textFx"); else e.putString("textFx", tf);
+        }
         if (i.hasExtra("moonage")) { // the moon's age in days (0 new .. 14.8 full .. 29.5), or none / live = real
             String ma = none(i.getStringExtra("moonage"));
             if (ma.isEmpty() || ma.equals("real")) e.remove("moonAge"); else e.putFloat("moonAge", Float.parseFloat(ma));

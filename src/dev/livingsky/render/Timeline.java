@@ -195,23 +195,27 @@ public final class Timeline {
         int n = w.hT.length - j0;
         if (n <= 0) return;
         hour = new Sample[n];
-        for (int i = 0; i < n; i++) {
-            int j = j0 + i, je = Math.min(w.hT.length - 1, j + 1);   // je: the entry that ends this hour
-            Sample h = new Sample();
-            h.t = w.hT[j];
-            h.temp = w.hTemp[j];
-            h.feels = h.temp;
-            h.rh = j < w.hRH.length ? w.hRH[j] : -1;
-            h.uv = j < w.hUV.length ? w.hUV[j] : 0;
-            h.gust = je < w.hGust.length ? w.hGust[je] : 0;
-            h.code = w.hCode[je];
-            // precipitation beyond the slots: the ensemble, else the model's hour
-            int ei = ens != null ? ens.idx(h.t + 0.5) : -1;
-            if (ei >= 0) { h.P = ens.p[ei]; h.R = ens.r[ei]; h.snow = ens.snow[ei]; h.src = "ens"; h.ensW = 1; }
-            else { double[] d = detAt(h.t + 0.5); h.P = d[0]; h.R = d[1]; h.snow = d[2]; h.src = "det"; }
-            norm(h);
-            hour[i] = h;
-        }
+        for (int i = 0; i < n; i++) hour[i] = hourSample(j0 + i);
+    }
+
+    /** The skeleton of the forecast's hour j: model temperature, codes, gusts; precipitation from the ensemble, else the model. */
+    private Sample hourSample(int j) {
+        Wx w = wx;
+        int je = Math.min(w.hT.length - 1, j + 1);   // je: the entry that ends this hour
+        Sample h = new Sample();
+        h.t = w.hT[j];
+        h.temp = w.hTemp[j];
+        h.feels = h.temp;
+        h.rh = j < w.hRH.length ? w.hRH[j] : -1;
+        h.uv = j < w.hUV.length ? w.hUV[j] : 0;
+        h.gust = je < w.hGust.length ? w.hGust[je] : 0;
+        h.code = w.hCode[je];
+        // precipitation beyond the slots: the ensemble, else the model's hour
+        int ei = ens != null ? ens.idx(h.t + 0.5) : -1;
+        if (ei >= 0) { h.P = ens.p[ei]; h.R = ens.r[ei]; h.snow = ens.snow[ei]; h.src = "ens"; h.ensW = 1; }
+        else { double[] d = detAt(h.t + 0.5); h.P = d[0]; h.R = d[1]; h.snow = d[2]; h.src = "det"; }
+        norm(h);
+        return h;
     }
 
     private void slots() {
@@ -306,9 +310,13 @@ public final class Timeline {
     /** Flags from the model's codes, gated by P; cloud from the model, raised where the ensemble says it is wet. */
     private void flagsAndCloud() {
         Wx w = wx;
-        for (int i = 1; i < hour.length; i++) {
-            Sample h = hour[i];
-            int je = j0 + i + 1;
+        for (int i = 1; i < hour.length; i++) flags(hour[i], j0 + i + 1);
+    }
+
+    /** One hour's flags from the model's codes around its end entry je, gated by P, and its cloud. */
+    private void flags(Sample h, int je) {
+        Wx w = wx;
+        {
             boolean th = false, ha = false, sh = false;
             for (int j = je - 1; j <= je + 1; j++) {
                 if (j < 0 || j >= w.hCode.length) continue;
@@ -361,6 +369,7 @@ public final class Timeline {
 
     /** After a scenario edited now, slots or hours: hours from the slots again, flags / cloud down to the slots, days. */
     public void aggregate() {
+        todayFull = null;
         if (slot.length > 0) { Sample s0 = now.copy(); s0.t = slot0; slot[0] = s0; }
         precipHours();
         inherit();
@@ -420,4 +429,33 @@ public final class Timeline {
 
     /** The strip day (wx.dT index), or null. */
     public WxClass.Day dayAt(int d) { return d >= 0 && d < day.length ? day[d] : null; }
+
+    private WxClass.Day todayFull;
+
+    /**
+     * Today as a whole calendar day (00-24): the hours already past, built the same way as the forecast hours (the
+     * ensemble where it has them, else the model; flags and cloud from the model), plus the hours from now on that the
+     * column draws, aggregated by the same strip rules. {@link #dayAt} for today is only the rest of the day.
+     */
+    public WxClass.Day todayFull() {
+        if (todayFull != null) return todayFull;
+        Wx w = wx;
+        int d = w.dayIndex(nowT);
+        if (d < 0 || !w.hasHourly() || hour.length == 0) return dayAt(d);
+        double t0 = w.dT[d], t1 = d + 1 < w.dT.length ? w.dT[d + 1] : t0 + 24;
+        List<Sample> hs = new ArrayList<>();
+        for (int j = 0; j < j0; j++) {
+            if (w.hT[j] < t0 - 1e-6) continue;
+            Sample h = hourSample(j);
+            flags(h, j + 1);
+            hs.add(h);
+        }
+        for (Sample h : hour) if (h.t >= t0 - 1e-6 && h.t < t1 - 1e-6) hs.add(h);
+        if (hs.isEmpty()) return dayAt(d);
+        double rise = d < w.dRise.length && w.dRise[d] > 0 ? w.dRise[d] : Double.NaN;
+        double set = d < w.dSet.length && w.dSet[d] > rise ? w.dSet[d] : Double.NaN;
+        if (Double.isNaN(set)) rise = Double.NaN;
+        todayFull = WxClass.day(hs.toArray(new Sample[0]), rise, set);
+        return todayFull;
+    }
 }

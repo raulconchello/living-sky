@@ -27,6 +27,7 @@ public final class SkyShader {
         public double stretch = 1;               // < 1 stretches the clouds horizontally (strong wind)
         public int state = WxState.OVERCAST;
         public boolean layerClouds;              // broken cloud comes from CloudLayer (WeatherFx): no shader puffs
+        public boolean noScrim;                  // the card text has its own halo; the scrim stays only for --es textfx old
         public boolean daylight = true;          // proposal B "Vívido" by day (false: the original sky8/sky9 sketch)
         public long seed = 20261121;
     }
@@ -137,6 +138,7 @@ public final class SkyShader {
     // ---- proposal B (design/daylight/sky10.js): luminous azure, pearl-grey noon overcast, compact text scrim
     /** Flat-topped superellipse over the text block, per channel (blue darkens least: a deeper sky, not murk). */
     private void scrim(double x, double y, double[] col, double k, double kr, double kg, double kb) {
+        if (P.noScrim) return;   // the default since 24 Nov: each glyph carries its own halo (kept for textfx old)
         double vx = (x - 88) / 108, vy = (y - 60) / 64;
         double v = Math.exp(-(vx * vx * vx * vx + vy * vy * vy * vy) * 1.1) * k;
         col[0] *= 1 - v * kr; col[1] *= 1 - v * kg; col[2] *= 1 - v * kb;
